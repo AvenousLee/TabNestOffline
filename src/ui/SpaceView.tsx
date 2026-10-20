@@ -3,6 +3,7 @@ import type { Card, Space } from '../types';
 import { useStore } from '../store/store';
 import { relativeTime } from '../lib/util';
 import { isReadOnly } from '../sync/engine';
+import { KIND_NAMES } from '../sync/providers';
 import { acceptsDrop, endDrag, readDrop } from './dnd';
 import { CollectionView } from './CollectionView';
 import { CardView } from './CardView';
@@ -141,11 +142,32 @@ function SyncErrorBanner({ space, onUpdateToken, onSettings }: { space: Space; o
   if (!err) return null;
   const t = space.sync!.target;
   const tokenProblem = t.type === 'repo' && /token|401|403|sign in|permission|reconnect/i.test(err);
+  // Name the exact repo, so a wrong one is obvious right where the problem shows up.
+  const remote = t.type === 'repo' ? s.remotes.find((r) => r.id === t.remoteId) : undefined;
+  const where = remote
+    ? `${remote.kind === 'github' ? 'GitHub' : `${new URL(remote.baseUrl).host} (${KIND_NAMES[remote.kind]})`}`
+    : '';
   return (
     <div className="banner error">
       <Icon name="alert" />
       <span className="banner-text">
-        <b>Sync problem.</b> {err}
+        {remote ? (
+          <>
+            Sync problem with{' '}
+            <b className="repo-name">
+              {remote.owner}/{remote.repo}
+            </b>{' '}
+            on {where}
+            {t.type === 'repo' && <span className="muted"> (file {t.path})</span>}.
+          </>
+        ) : t.type === 'url' ? (
+          <>
+            Sync problem with <b className="repo-name">{t.url}</b>.
+          </>
+        ) : (
+          <b>Sync problem.</b>
+        )}{' '}
+        {err}
       </span>
       {tokenProblem && (
         <button className="btn primary" onClick={() => onUpdateToken(t.remoteId)}>

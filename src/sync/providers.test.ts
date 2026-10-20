@@ -135,3 +135,15 @@ describe('brand-new empty repository', () => {
     await expect(getRepoFile(gh, 'space.json')).rejects.toThrow(/It has: master/);
   });
 });
+
+describe('GitHub fine-grained token without write permission', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('explains how to fix the token instead of a generic 403', async () => {
+    vi.stubGlobal('fetch', async () =>
+      new Response(JSON.stringify({ message: 'Resource not accessible by personal access token' }), { status: 403, headers: { 'content-type': 'application/json' } }),
+    );
+    const { putRepoFile } = await import('./providers');
+    const gh: Remote = { id: 'g', label: 'x', kind: 'github', baseUrl: '', owner: 'me', repo: 'r', branch: 'main', token: 't' };
+    await expect(putRepoFile(gh, 'space.json', '{}', 'sha', 'msg')).rejects.toThrow(/Contents to "Read and write"/);
+  });
+});

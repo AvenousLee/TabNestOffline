@@ -211,3 +211,4 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-
 .link-btn:hover { color: var(--text); }
 .banner.error { border-color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
 .link-row { display: flex; gap: 16px; }
+.repo-name { font-weight: 700; color: var(--text); overflow-wrap: anywhere; }

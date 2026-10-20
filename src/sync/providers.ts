@@ -57,6 +57,15 @@ async function failure(res: Response, what: string): Promise<SyncError> {
   } catch {
     /* body wasn't JSON */
   }
+  // GitHub fine-grained tokens: the account may own the repo while the token itself isn't allowed to write.
+  if (res.status === 403 && /not accessible by personal access token/i.test(detail)) {
+    return new SyncError(
+      `${what} failed (403): your GitHub token isn't allowed to do this. On GitHub open Settings → Developer settings → Fine-grained tokens → this token, ` +
+        `make sure this repository is selected under Repository access and set Contents to "Read and write", save, then click Try again ` +
+        `(the token itself stays the same).`,
+      403,
+    );
+  }
   const hint =
     res.status === 401
       ? 'The token was rejected, expired or is missing. Click Update token.'
@@ -310,7 +319,14 @@ export async function connectRepo(address: string, token: string, opts: { branch
     );
   }
   draft.branch = opts.branch?.trim() || info.defaultBranch;
-  const access = info.canWrite ? 'you can upload changes' : draft.token ? 'read-only for you (you can follow spaces here)' : 'readable without signing in (add a token to upload)';
+  // GitHub reports the account's rights, not the token's: a fine-grained token may still be read-only.
+  const access = info.canWrite
+    ? kind === 'github'
+      ? 'your account can upload (the token needs Contents: Read and write)'
+      : 'you can upload changes'
+    : draft.token
+      ? 'read-only for you (you can follow spaces here)'
+      : 'readable without signing in (add a token to upload)';
   const notes = [`Connected to ${info.fullName} on ${where}: ${info.isPrivate ? 'private' : 'public'}, ${access}, branch ${draft.branch}.`];
   if (info.empty) notes.push('The repository is empty. TabNest will try to create the first file; if that fails, add a README in the repo first.');
   return { status: 'ok', remote: { ...draft, readOnly: !info.canWrite }, message: notes.join(' ') };
