@@ -7,6 +7,18 @@ A Toby-style tab manager for Chrome that replaces the new-tab page, with two ext
 2. **Git sync per space.** Each space can sync to its own repo: your company **Forgejo** for work spaces,
    **GitHub** for personal ones. Each space has an update setting: **Auto-pull / Ask me / Ignore**.
 
+## Screenshots
+
+**Spaces, collections and cards.** Drag tabs in from the right; each space can sync to its own repo.
+
+![Spaces and cards](docs/screenshots/1-spaces.jpg)
+
+| Card editor (optional picture, 500-character description) | Share as an HTML file or PDF |
+| --- | --- |
+| ![Card editor](docs/screenshots/2-card-editor.jpg) | ![Share dialog](docs/screenshots/3-share.jpg) |
+| **Merge both** when a space changed on two devices | A shared file opened without the extension |
+| ![Merge conflict](docs/screenshots/4-merge.jpg) | ![Shared HTML file](docs/screenshots/5-shared-file.jpg) |
+
 ## Install (developer mode)
 
 ```bash
