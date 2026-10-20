@@ -108,7 +108,7 @@ TabNest remembers the last version both sides agreed on, then on each check:
 | unchanged | unchanged | up to date |
 | changed | unchanged | uploaded (automatically a few seconds after an edit, if *auto-upload* is on) |
 | unchanged | changed | **Auto-pull**: applied · **Ask me**: banner with *Pull update / Ignore* · **Ignore**: nothing until you press *Sync now* |
-| changed | changed | always asks: *Use theirs / Keep mine / Keep both* (keep both saves yours as a separate space) |
+| changed | changed | **Merge both** (recommended): additions and deletions from each side are kept, edits merge field by field; if both changed the same field, yours wins and a note says so. Also *Use theirs / Keep mine / Keep as 2 spaces*. With **Auto-pull**, clash-free merges happen automatically. |
 
 Checks run when you open a new tab (at most every 2 minutes) and every 15 minutes in the background. The toolbar badge
 shows how many spaces have an update waiting. Every upload is a normal git commit, so you can see the history or roll back in Forgejo/GitHub.

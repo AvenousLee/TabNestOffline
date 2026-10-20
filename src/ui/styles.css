@@ -224,3 +224,6 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .picture-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 8px; padding: 18px; text-align: center; }
 .picture-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .picture-box .row { flex-wrap: nowrap; }
+.banner.info { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, transparent); align-items: flex-start; }
+.merge-notes { margin: 6px 0 0; padding-left: 18px; }
+.merge-notes li { margin: 2px 0; }

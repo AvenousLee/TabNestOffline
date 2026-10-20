@@ -49,7 +49,7 @@ export interface SyncConfig {
    * The last version both sides agreed on. Undefined until the first sync.
    * sha is '' for a space imported from a shared file (content known, server version not yet).
    */
-  base?: { sha: string; hash: string };
+  base?: { sha: string; hash: string; /** That version's content, kept locally so both sides' edits can be merged. */ content?: SpaceContent };
   /** Remote version the user chose to ignore; we don't prompt again until it changes. */
   ignoredSha?: string;
   lastCheckedAt?: string;

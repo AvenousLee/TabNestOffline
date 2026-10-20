@@ -9,10 +9,11 @@
 //   only remote      -> apply the space's policy: auto = pull, ask = prompt, ignore = remember & stay quiet
 //   both             -> conflict, always ask (never silently overwrite someone's work)
 
-import type { PendingUpdate, Remote, Space, SpaceFile } from '../types';
-import { hashContent, parseSpaceFile, serializeSpaceFile, toSpaceFile } from '../lib/spaceFile';
+import type { PendingUpdate, Remote, Space, SpaceContent, SpaceFile } from '../types';
+import { contentOf, hashContent, parseSpaceFile, serializeSpaceFile, toSpaceFile } from '../lib/spaceFile';
 import { nowIso } from '../lib/util';
 import { fetchTarget, findRemote, putRepoFile, type RemoteFile } from './providers';
+import { mergeSpaces } from './merge';
 
 export type Decision =
   | { kind: 'up-to-date' }
@@ -29,7 +30,7 @@ export type Decision =
 export interface DecideInput {
   localHash: string;
   localIsEmpty: boolean;
-  base?: { sha: string; hash: string };
+  base?: { sha: string; hash: string; content?: SpaceContent };
   remote: { sha: string; hash: string; file: SpaceFile } | null;
   readOnly: boolean;
 }
@@ -89,14 +90,14 @@ export function applyRemote(space: Space, file: SpaceFile, sha: string, hash: st
     ...file.content,
     collections: file.content.collections.map((c) => ({ ...c, collapsed: collapsed.has(c.id) || undefined })),
     updatedAt: file.updatedAt,
-    sync: { ...space.sync!, base: { sha, hash }, ignoredSha: undefined, lastError: undefined, lastCheckedAt: nowIso() },
+    sync: { ...space.sync!, base: { sha, hash, content: file.content }, ignoredSha: undefined, lastError: undefined, lastCheckedAt: nowIso() },
   };
 }
 
 async function doPush(space: Space, remotes: Remote[], remoteSha: string | undefined, io: SyncIO): Promise<Space> {
   const hash = await hashContent(space);
   const sha = await io.push(space, remotes, serializeSpaceFile(toSpaceFile(space)), remoteSha);
-  return { ...space, sync: { ...space.sync!, base: { sha, hash }, ignoredSha: undefined, lastError: undefined, lastCheckedAt: nowIso() } };
+  return { ...space, sync: { ...space.sync!, base: { sha, hash, content: contentOf(space) }, ignoredSha: undefined, lastError: undefined, lastCheckedAt: nowIso() } };
 }
 
 /**
@@ -126,7 +127,7 @@ export async function syncSpace(space: Space, remotes: Remote[], opts: { manual:
       case 'up-to-date':
         return { space: checked(space), pending: null, message: 'Up to date.' };
       case 'adopt':
-        return { space: checked(space, { base: { sha: d.sha, hash: d.hash } }), pending: null, message: 'Up to date.' };
+        return { space: checked(space, { base: { sha: d.sha, hash: d.hash, content: contentOf(space) } }), pending: null, message: 'Up to date.' };
       case 'local-only':
         return { space: checked(space), pending: null, message: 'You have local changes (this space is read-only, they stay on this device).' };
       case 'missing':
@@ -142,6 +143,11 @@ export async function syncSpace(space: Space, remotes: Remote[], opts: { manual:
         if (!opts.manual && sync.ignoredSha === d.sha) return { space: checked(space), pending: null, message: 'Update ignored.' };
         if (d.kind === 'remote-update' && sync.policy === 'auto') {
           return { space: applyRemote(space, d.file, d.sha, d.hash), pending: null, message: 'Pulled the latest version.' };
+        }
+        // Auto-pull + both sides changed: merge quietly if nothing clashes; otherwise ask.
+        if (d.kind === 'conflict' && sync.policy === 'auto' && sync.base?.content && mergeSpaces(sync.base.content, contentOf(space), d.file.content).clean) {
+          const res = await mergePending(space, prompt, remotes, io);
+          return { space: res.space, pending: null, message: 'Merged changes from both sides.' };
         }
         if (sync.policy === 'ignore' && !opts.manual) {
           return { space: checked(space, { ignoredSha: d.sha }), pending: null, message: 'Update available (ignored by setting).' };
@@ -197,4 +203,25 @@ export async function resolvePending(space: Space, p: PendingUpdate, choice: Res
   // keep-mine: overwrite the server with the local copy (based on the version we just saw).
   if (isReadOnly(space)) return { ...space, sync: { ...space.sync!, ignoredSha: p.sha } };
   return doPush({ ...space, updatedAt: nowIso() }, remotes, p.sha, io);
+}
+
+/**
+ * Merge both versions (see merge.ts), then upload the result so every device
+ * ends up with it. For a space you only follow, the merge stays on this device.
+ */
+export async function mergePending(space: Space, p: PendingUpdate, remotes: Remote[], io: SyncIO = realIO): Promise<{ space: Space; notes: string[] }> {
+  const { merged, notes } = mergeSpaces(space.sync?.base?.content, contentOf(space), p.remote.content);
+  const collapsed = new Set(space.collections.filter((c) => c.collapsed).map((c) => c.id));
+  const next: Space = {
+    ...space,
+    ...merged,
+    collections: merged.collections.map((c) => ({ ...c, collapsed: collapsed.has(c.id) || undefined })),
+    updatedAt: nowIso(),
+  };
+  if (isReadOnly(next)) {
+    // Remember their version as the shared one; my merged extras stay local.
+    const base = { sha: p.sha, hash: await hashContent(p.remote.content), content: p.remote.content };
+    return { space: { ...next, sync: { ...next.sync!, base, ignoredSha: undefined, lastError: undefined } }, notes };
+  }
+  return { space: await doPush(next, remotes, p.sha, io), notes };
 }

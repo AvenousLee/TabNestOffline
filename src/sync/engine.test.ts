@@ -180,3 +180,33 @@ describe('following a repo (pull only)', () => {
     expect(gone.space.sync?.lastError).toMatch(/not found/);
   });
 });
+
+describe('merging a conflict', () => {
+  it('Merge both keeps edits from each side and uploads the result', async () => {
+    const { mergePending } = await import('./engine');
+    const server = fakeServer();
+    const mine = (await syncSpace(space(['a.com', 'b.com'], 'ask'), remotes, { manual: false }, server.io)).space;
+    expect(mine.sync?.base?.content).toBeTruthy(); // the agreed version is remembered for merging
+    // They add c.com elsewhere; I add d.com here.
+    server.remoteEdit({ ...mine, collections: [{ ...mine.collections[0], cards: [...mine.collections[0].cards, { id: 'c', title: 'c', url: 'https://c.com/' }] }] });
+    const edited = { ...mine, collections: [{ ...mine.collections[0], cards: [...mine.collections[0].cards, { id: 'd', title: 'd', url: 'https://d.com/' }] }] };
+    const r = await syncSpace(edited, remotes, { manual: false }, server.io);
+    expect(r.pending?.kind).toBe('conflict');
+    const merged = await mergePending(r.space, r.pending!, remotes, server.io);
+    expect(merged.space.collections[0].cards.map((k) => k.url).sort()).toEqual(['https://a.com/', 'https://b.com/', 'https://c.com/', 'https://d.com/']);
+    expect(merged.notes).toEqual([]);
+    expect(server.file!.text).toContain('d.com');
+    expect(server.file!.text).toContain('c.com');
+  });
+
+  it('Auto-pull merges a clash-free conflict without asking', async () => {
+    const server = fakeServer();
+    const mine = (await syncSpace(space(['a.com'], 'auto'), remotes, { manual: false }, server.io)).space;
+    server.remoteEdit({ ...mine, collections: [{ ...mine.collections[0], cards: [...mine.collections[0].cards, { id: 'c', title: 'c', url: 'https://c.com/' }] }] });
+    const edited = { ...mine, collections: [{ ...mine.collections[0], cards: [...mine.collections[0].cards, { id: 'd', title: 'd', url: 'https://d.com/' }] }] };
+    const r = await syncSpace(edited, remotes, { manual: false }, server.io);
+    expect(r.pending).toBeNull();
+    expect(r.message).toMatch(/Merged/);
+    expect(r.space.collections[0].cards).toHaveLength(3);
+  });
+});

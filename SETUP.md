@@ -47,9 +47,15 @@ updates according to its setting: **Auto-pull** applies it, **Ask me** shows a b
 
 **Token expired?** The space shows a red *Sync problem* banner → **Update token**.
 
+**Changed on two devices at once?** The space shows *"This space changed here and somewhere else"* → click **Merge both**.
+Everything added or removed on either side is kept/removed, and edits are combined. If both changed the same thing, this device's version
+wins and a green note lists what was decided. (With **Auto-pull**, clash-free merges happen without asking.)
+
 ## 4. Share a space offline
 
-1. Open the space → **Share** → tick the spaces → fill in **Shared by** (your name + email) → **Download HTML file**.
+1. Open the space → **Share** → pick **HTML file** or **PDF** → tick the spaces → fill in **Shared by** (your name + email) →
+   **Download HTML file** / **Save as PDF…** (for PDF, Chrome's print window opens: choose **Save as PDF** as the printer).
+   Uploaded pictures are always included. Tick *Include linked pictures* to also put linked/website pictures inside the file so they show offline.
 2. Send the `.html` file by email/Teams. Anyone can double-click it to open it in a browser, with no extension needed.
 3. In ⋯ → Space settings → *Offline sharing*:
    - **Snapshot**: a frozen copy.

@@ -75,6 +75,7 @@ export function SpaceView({
 
       <SyncErrorBanner space={space} onUpdateToken={onUpdateToken} onSettings={onSettings} />
       <PendingBanner space={space} />
+      <MergeNotes space={space} />
 
       {space.collections.map((col, i) => (
         <CollectionView
@@ -184,6 +185,29 @@ function SyncErrorBanner({ space, onUpdateToken, onSettings }: { space: Space; o
   );
 }
 
+/** After a merge: what clashed and how it was settled. */
+function MergeNotes({ space }: { space: Space }) {
+  const s = useStore();
+  const notes = s.mergeNotes[space.id];
+  if (!notes?.length) return null;
+  return (
+    <div className="banner info">
+      <Icon name="check" />
+      <span className="banner-text">
+        <b>Merged.</b> A few things needed a decision:
+        <ul className="merge-notes">
+          {notes.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
+        </ul>
+      </span>
+      <button className="btn ghost" onClick={() => s.dismissMergeNotes(space.id)}>
+        OK
+      </button>
+    </div>
+  );
+}
+
 function PendingBanner({ space }: { space: Space }) {
   const s = useStore();
   const p = s.pending.find((x) => x.spaceId === space.id);
@@ -197,7 +221,7 @@ function PendingBanner({ space }: { space: Space }) {
         {p.kind === 'conflict' ? (
           <>
             <b>This space changed here and somewhere else.</b> The other version ({theirs} tabs, {new Date(p.remote.updatedAt).toLocaleString()}) is
-            different from yours.
+            different from yours. <b>Merge both</b> keeps everyone's changes.
           </>
         ) : (
           <>
@@ -206,7 +230,12 @@ function PendingBanner({ space }: { space: Space }) {
           </>
         )}
       </span>
-      <button className="btn primary" onClick={() => void s.resolve(space.id, 'take-theirs')}>
+      {p.kind === 'conflict' && (
+        <button className="btn primary" onClick={() => void s.resolve(space.id, 'merge')} title="Combine both: additions, deletions and edits from each side">
+          Merge both
+        </button>
+      )}
+      <button className={p.kind === 'conflict' ? 'btn' : 'btn primary'} onClick={() => void s.resolve(space.id, 'take-theirs')}>
         {p.kind === 'conflict' ? 'Use theirs' : 'Pull update'}
       </button>
       {p.kind === 'conflict' && (
@@ -216,8 +245,8 @@ function PendingBanner({ space }: { space: Space }) {
               Keep mine
             </button>
           )}
-          <button className="btn" onClick={() => void s.resolve(space.id, 'keep-both')} title="Your version is saved as a separate space">
-            Keep both
+          <button className="btn ghost" onClick={() => void s.resolve(space.id, 'keep-both')} title="Your version is saved as a separate space">
+            Keep as 2 spaces
           </button>
         </>
       )}

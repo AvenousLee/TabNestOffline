@@ -4,7 +4,7 @@ import { fetchPreviewImage } from '../lib/image';
 import * as db from '../storage/storage';
 import { newId, nowIso } from '../lib/util';
 import { hashContent } from '../lib/spaceFile';
-import { isReadOnly, mergeSyncResult, resolvePending, syncSpace, type Resolution } from '../sync/engine';
+import { isReadOnly, mergePending, mergeSyncResult, resolvePending, syncSpace, type Resolution } from '../sync/engine';
 import { matchRemoteForUrl } from '../sync/providers';
 import { setBadge } from '../browser/tabs';
 
@@ -34,6 +34,8 @@ interface State {
   query: string;
   syncing: Record<string, boolean>;
   syncMessage: Record<string, string>;
+  /** What happened in the last merge (clashes etc.), shown until dismissed. */
+  mergeNotes: Record<string, string[]>;
   toast?: string;
 
   init(): Promise<void>;
@@ -63,7 +65,8 @@ interface State {
   deleteRemote(id: string): void;
 
   syncNow(spaceId: string, manual?: boolean): Promise<void>;
-  resolve(spaceId: string, choice: Resolution | 'keep-both'): Promise<void>;
+  resolve(spaceId: string, choice: Resolution | 'keep-both' | 'merge'): Promise<void>;
+  dismissMergeNotes(spaceId: string): void;
   importSpaces(files: SharedSpace[], follow: boolean): Promise<string[]>;
   saveProfile(p: Profile): void;
   savePrefs(p: Prefs): void;
@@ -120,6 +123,7 @@ export const useStore = create<State>()((set, get) => {
     query: '',
     syncing: {},
     syncMessage: {},
+    mergeNotes: {},
 
     async init() {
       if (initStarted) return;
@@ -354,6 +358,14 @@ export const useStore = create<State>()((set, get) => {
           persistOrder();
           choice = 'take-theirs';
         }
+        if (choice === 'merge') {
+          const { space: merged, notes } = await mergePending(space, p, get().remotes);
+          commitSpace(merged, false);
+          setPending(get().pending.filter((x) => x.spaceId !== spaceId));
+          set((st) => ({ mergeNotes: { ...st.mergeNotes, [spaceId]: notes } }));
+          get().showToast(notes.length ? 'Merged both versions. See the notes above your collections.' : 'Merged both versions. Nothing clashed.');
+          return;
+        }
         const next = await resolvePending(space, p, choice, get().remotes);
         commitSpace(next, false);
         setPending(get().pending.filter((x) => x.spaceId !== spaceId));
@@ -361,6 +373,14 @@ export const useStore = create<State>()((set, get) => {
       } catch (e) {
         get().showToast(e instanceof Error ? e.message : String(e));
       }
+    },
+
+    dismissMergeNotes(spaceId) {
+      set((st) => {
+        const next = { ...st.mergeNotes };
+        delete next[spaceId];
+        return { mergeNotes: next };
+      });
     },
 
     savePrefs(prefs) {
@@ -382,7 +402,7 @@ export const useStore = create<State>()((set, get) => {
         // If you already have a git remote for that repo, follow through it (works for private repos).
         let sync: SyncConfig | undefined = existing?.sync;
         if (follow && f.checkUrl) {
-          const base = { sha: '', hash: await hashContent(f.content) };
+          const base = { sha: '', hash: await hashContent(f.content), content: f.content };
           const viaRemote = matchRemoteForUrl(f.checkUrl, get().remotes);
           sync = {
             target: viaRemote ? { type: 'repo', remoteId: viaRemote.remote.id, path: viaRemote.path, follow: true } : { type: 'url', url: f.checkUrl },
