@@ -9,8 +9,9 @@
 //   pending         PendingUpdate[]   remote changes waiting for the user
 //   ui              { activeSpaceId }
 //   profile         Profile           your name/contact shown in shared files
+//   prefs           Prefs             personal preferences
 
-import type { PendingUpdate, Profile, Remote, Space } from '../types';
+import type { PendingUpdate, Prefs, Profile, Remote, Space } from '../types';
 
 export const hasChromeStorage = typeof chrome !== 'undefined' && !!chrome.storage?.local;
 
@@ -49,11 +50,20 @@ export interface Snapshot {
   pending: PendingUpdate[];
   activeSpaceId?: string;
   profile: Profile;
+  prefs: Prefs;
 }
 
 export async function loadAll(): Promise<Snapshot> {
-  const { spaceOrder = [], remotes = [], pending = [], ui = {}, profile = { name: '', contact: '' } } = (await getRaw(['spaceOrder', 'remotes', 'pending', 'ui', 'profile'])) as {
+  const { spaceOrder = [], remotes = [], pending = [], ui = {}, profile = { name: '', contact: '' }, prefs = { autoPreview: false } } = (await getRaw([
+    'spaceOrder',
+    'remotes',
+    'pending',
+    'ui',
+    'profile',
+    'prefs',
+  ])) as {
     profile?: Profile;
+    prefs?: Prefs;
     spaceOrder?: string[];
     remotes?: Remote[];
     pending?: PendingUpdate[];
@@ -61,7 +71,7 @@ export async function loadAll(): Promise<Snapshot> {
   };
   const raw = await getRaw(spaceOrder.map(spaceKey));
   const spaces = spaceOrder.map((id) => raw[spaceKey(id)] as Space | undefined).filter((s): s is Space => !!s);
-  return { spaces, remotes, pending, activeSpaceId: ui.activeSpaceId, profile };
+  return { spaces, remotes, pending, activeSpaceId: ui.activeSpaceId, profile, prefs };
 }
 
 export async function loadSpace(id: string): Promise<Space | undefined> {
@@ -73,6 +83,7 @@ export const saveSpaceOrder = (ids: string[]) => setRaw({ spaceOrder: ids });
 export const deleteSpaceKey = (id: string) => removeRaw([spaceKey(id)]);
 export const saveRemotes = (remotes: Remote[]) => setRaw({ remotes });
 export const savePending = (pending: PendingUpdate[]) => setRaw({ pending });
+export const savePrefs = (prefs: Prefs) => setRaw({ prefs });
 export const saveProfile = (profile: Profile) => setRaw({ profile });
 export const saveUi = (ui: { activeSpaceId?: string }) => setRaw({ ui });
 

@@ -44,7 +44,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal
-      title="Import spaces"
+      title="Import shared spaces"
       onClose={onClose}
       footer={
         <>
@@ -66,8 +66,7 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
         }}
       >
         <Icon name="upload" size={22} />
-        <span>Choose or drop a TabNest .html / .json file, or a Toby export (.json)</span>
-        <span className="small">Toby: open Toby → your account menu / Settings → Export → JSON.</span>
+        <span>Choose or drop a TabNest .html or .json file someone shared with you</span>
         <input type="file" accept=".html,.htm,.json" hidden onChange={(e) => void read(e.target.files?.[0])} />
       </label>
       {error && <div className="status-line err">{error}</div>}

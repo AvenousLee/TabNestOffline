@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { Card, Collection, PendingUpdate, Profile, Remote, SharedSpace, Space, SyncConfig } from '../types';
+import type { Card, Collection, PendingUpdate, Prefs, Profile, Remote, SharedSpace, Space, SyncConfig } from '../types';
+import { fetchPreviewImage } from '../lib/image';
 import * as db from '../storage/storage';
 import { newId, nowIso } from '../lib/util';
 import { hashContent } from '../lib/spaceFile';
@@ -19,6 +20,7 @@ export interface NewCard {
   url: string;
   favIconUrl?: string;
   note?: string;
+  image?: string;
 }
 
 interface State {
@@ -28,6 +30,7 @@ interface State {
   pending: PendingUpdate[];
   activeSpaceId?: string;
   profile: Profile;
+  prefs: Prefs;
   query: string;
   syncing: Record<string, boolean>;
   syncMessage: Record<string, string>;
@@ -63,6 +66,7 @@ interface State {
   resolve(spaceId: string, choice: Resolution | 'keep-both'): Promise<void>;
   importSpaces(files: SharedSpace[], follow: boolean): Promise<string[]>;
   saveProfile(p: Profile): void;
+  savePrefs(p: Prefs): void;
 }
 
 const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -112,6 +116,7 @@ export const useStore = create<State>()((set, get) => {
     remotes: [],
     pending: [],
     profile: { name: '', contact: '' },
+    prefs: { autoPreview: false },
     query: '',
     syncing: {},
     syncMessage: {},
@@ -142,6 +147,7 @@ export const useStore = create<State>()((set, get) => {
         remotes: snap.remotes,
         pending: snap.pending,
         profile: snap.profile,
+        prefs: snap.prefs,
         activeSpaceId: snap.spaces.some((x) => x.id === (s.activeSpaceId ?? snap.activeSpaceId))
           ? (s.activeSpaceId ?? snap.activeSpaceId)
           : snap.spaces[0]?.id,
@@ -230,14 +236,26 @@ export const useStore = create<State>()((set, get) => {
     },
 
     addCard(spaceId, colId, card, index) {
+      const id = newId();
       editCollections(spaceId, (cols) =>
         cols.map((c) => {
           if (c.id !== colId) return c;
           const cards = [...c.cards];
-          cards.splice(index ?? cards.length, 0, { ...card, id: newId() });
+          cards.splice(index ?? cards.length, 0, { ...card, id });
           return { ...c, cards };
         }),
       );
+      // Optional: add the website's preview picture in the background.
+      if (get().prefs.autoPreview && !card.image) {
+        fetchPreviewImage(card.url)
+          .then((image) => {
+            const still = get().spaces.find((sp) => sp.id === spaceId)?.collections.find((c) => c.id === colId)?.cards.find((k) => k.id === id);
+            if (image && still && !still.image) get().updateCard(spaceId, colId, id, { image });
+          })
+          .catch(() => {
+            /* no preview: page needs login, blocks it, or has none */
+          });
+      }
     },
 
     updateCard: (spaceId, colId, cardId, patch) =>
@@ -343,6 +361,11 @@ export const useStore = create<State>()((set, get) => {
       } catch (e) {
         get().showToast(e instanceof Error ? e.message : String(e));
       }
+    },
+
+    savePrefs(prefs) {
+      set({ prefs });
+      void db.savePrefs(prefs);
     },
 
     saveProfile(profile) {

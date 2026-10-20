@@ -12,6 +12,13 @@ export function Favicon({ url, fallback, title }: { url: string; fallback?: stri
   return <img className="favicon" src={src} alt="" onError={() => setBroken(true)} referrerPolicy="no-referrer" />;
 }
 
+/** Card picture; hides itself if a linked image can't be loaded. */
+function CardImage({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) return null;
+  return <img className="card-image" src={src} alt="" loading="lazy" draggable={false} referrerPolicy="no-referrer" onError={() => setBroken(true)} />;
+}
+
 export function CardView({
   card,
   spaceId,
@@ -36,11 +43,17 @@ export function CardView({
       onDragStart={(e) => startDrag(e, { kind: 'card', spaceId, colId, cardId: card.id }, card.url)}
       onDragEnd={endDrag}
     >
+      {card.image && <CardImage src={card.image} />}
       <div className="card-title">
         <Favicon url={card.url} fallback={card.favIconUrl} title={card.title} />
         <span>{card.title || card.url}</span>
       </div>
-      {card.note ? <div className="card-note">{card.note}</div> : <div className="card-host">{hostOf(card.url)}</div>}
+      {card.note && (
+        <div className="card-note" title={card.note}>
+          {card.note}
+        </div>
+      )}
+      <div className="card-host">{hostOf(card.url)}</div>
       {!readOnly && (
         <div className="card-actions" onClick={(e) => e.preventDefault()}>
           <button className="icon-btn" title="Edit" onClick={onEdit}>

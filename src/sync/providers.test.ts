@@ -147,3 +147,17 @@ describe('GitHub fine-grained token without write permission', () => {
     await expect(putRepoFile(gh, 'space.json', '{}', 'sha', 'msg')).rejects.toThrow(/Contents to "Read and write"/);
   });
 });
+
+describe('GitHub files over 1 MB', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('reads the content through the blob API', async () => {
+    vi.stubGlobal('fetch', async (url: string) => {
+      const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200, headers: { 'content-type': 'application/json' } });
+      if (url.includes('/git/blobs/big')) return json({ content: btoa('{"big":true}') });
+      return json({ sha: 'big', type: 'file', content: '', encoding: 'none', size: 2_000_000 });
+    });
+    const { getRepoFile } = await import('./providers');
+    const gh: Remote = { id: 'g', label: 'x', kind: 'github', baseUrl: '', owner: 'me', repo: 'r', branch: 'main', token: 't' };
+    expect(await getRepoFile(gh, 'space.json')).toEqual({ sha: 'big', text: '{"big":true}' });
+  });
+});

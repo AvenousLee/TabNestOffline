@@ -71,3 +71,5 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   .main { padding: 16px; }
   .search { width: 100%; margin-left: 0; }
 }
+.card .pic { display: block; width: calc(100% + 28px); margin: -12px -14px 0; height: 120px; object-fit: cover; border-radius: 10px 10px 0 0; background: var(--bg); }
+.card .n { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }

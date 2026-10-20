@@ -101,8 +101,14 @@ export async function getRepoFile(remote: Remote, path: string): Promise<RemoteF
   const res = await request(url, { headers: headers(remote) }, 'Reading from git');
   if (res.status === 404) return fileMissing(remote);
   if (!res.ok) throw await failure(res, 'Reading from git');
-  const body = (await res.json()) as { sha: string; content?: string; type?: string };
+  const body = (await res.json()) as { sha: string; content?: string; type?: string; encoding?: string; size?: number };
   if (body.type && body.type !== 'file') throw new SyncError(`"${path}" in the repo is a folder, not a file.`);
+  // GitHub leaves "content" empty for files over 1 MB (e.g. spaces with many pictures); read the blob instead.
+  if (!body.content && (body.encoding === 'none' || (body.size ?? 0) > 0)) {
+    const blob = await request(`${apiBase(remote)}${repoPath(remote)}/git/blobs/${body.sha}`, { headers: headers(remote) }, 'Reading a large file from git');
+    if (!blob.ok) throw await failure(blob, 'Reading a large file from git');
+    return { sha: body.sha, text: base64ToUtf8(((await blob.json()) as { content: string }).content) };
+  }
   return { sha: body.sha, text: base64ToUtf8(body.content ?? '') };
 }
 

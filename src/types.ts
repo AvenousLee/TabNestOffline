@@ -6,7 +6,12 @@ export interface Card {
   url: string;
   note?: string;
   favIconUrl?: string;
+  /** Picture shown on the card: an uploaded image (data: URL, kept small) or a web image link. */
+  image?: string;
 }
+
+/** Longest description a card can have. */
+export const NOTE_MAX = 500;
 
 export interface Collection {
   id: string;
@@ -100,6 +105,12 @@ export interface SpaceFile {
   id: string;
   updatedAt: string;
   content: SpaceContent;
+}
+
+/** Personal preferences (this browser only, not synced). */
+export interface Prefs {
+  /** Fetch each saved link's website preview picture automatically. */
+  autoPreview: boolean;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */

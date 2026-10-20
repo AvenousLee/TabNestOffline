@@ -85,11 +85,6 @@ Set it up once:
    - creates a space → ⋯ → **Git repository** → **Follow (pull only)** → the same file path.
 5. Your changes now reach them according to their own setting (Auto-pull / Ask me / Ignore). Their edits stay on their device and never touch your repo.
 
-## Importing from Toby
-
-In Toby, export your data as JSON (account menu / Settings → Export). In TabNest click **Import (shared file / Toby)** and pick that file.
-Each Toby space becomes a TabNest space, each list a collection. Custom titles and descriptions are kept.
-
 ## Syncing across your devices with git
 
 1. Create a repo on GitHub, GitLab or Forgejo/Gitea (e.g. `tabnest-spaces`). Adding a README is safest, so it isn't empty.
@@ -143,6 +138,7 @@ shows how many spaces have an update waiting. Every upload is a normal git commi
 
 ## Ideas for later
 
+- Toby import: the parser exists (`src/share/toby.ts`) but is hidden from the UI, because Toby currently has no export.
 - Edge works today as-is (same Chromium APIs). Firefox needs a `browser_specific_settings` manifest entry and testing.
 - Tags, notes view, starred spaces, "Next" reading list, tab-limit warnings.
 - Encrypt tokens with a passphrase.

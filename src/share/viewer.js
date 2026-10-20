@@ -49,6 +49,15 @@
     return img;
   }
 
+  // Card picture: an uploaded image (kept inside this file) or a web link (needs the network).
+  function picture(card) {
+    var src = card.image || '';
+    if (!/^data:image\/(png|jpeg|webp|gif);base64,/i.test(src) && !/^https?:\/\//i.test(src)) return null;
+    var img = el('img', { class: 'pic', src: src, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
+    img.onerror = function () { img.remove(); };
+    return img;
+  }
+
   function copyLinks(col) {
     var text = col.cards.map(function (c) { return c.title + '\n' + c.url; }).join('\n\n');
     if (navigator.clipboard) navigator.clipboard.writeText(text);
@@ -111,8 +120,9 @@
       var grid = el('div', { class: 'grid' });
       cards.forEach(function (c) {
         grid.appendChild(el('a', { class: 'card', href: safeUrl(c.url), target: '_blank', rel: 'noopener noreferrer', title: c.url }, [
+          picture(c),
           el('div', { class: 't' }, [icon(c), el('span', { text: c.title || c.url })]),
-          c.note ? el('div', { class: 'n', text: c.note }) : null,
+          c.note ? el('div', { class: 'n', text: c.note, title: c.note }) : null,
           el('div', { class: 'h', text: host(c.url) }),
         ]));
       });

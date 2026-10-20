@@ -97,7 +97,7 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
 
       <div className="side-bottom">
         <button className="side-link" onClick={onImport}>
-          <Icon name="upload" /> Import (shared file / Toby)
+          <Icon name="upload" /> Import shared file
         </button>
         <button className="side-link" onClick={onShareMany}>
           <Icon name="share" /> Share several spaces

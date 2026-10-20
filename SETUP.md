@@ -20,15 +20,14 @@ You should see TabNest with a **Personal** space and a "Getting started" collect
 - **Organise:** **New Collection**; drag cards to reorder or into another collection; drop a card on a space in the sidebar to move it there.
 - **Rename:** double-click a space or collection name.
 - **Search:** press `/` and type. Search covers every space.
+- **Pictures and descriptions:** click ✏️ on a card. Add a description (up to 500 characters; the card shows 3 lines, hover for the rest).
+  Pictures are optional: tick **Add a picture** to show the picture options.
+  Add a picture by **Upload image**, dropping a file, pasting a screenshot (Ctrl+V), pasting an image link, or **Use website preview**.
+  Uploaded pictures are shrunk (about 480px wide) and travel with the space, so they sync and show in shared files offline.
+  Tick *Automatically add website previews* to get pictures whenever you save tabs (Chrome asks once for access to all websites).
 - **Spaces:** **+ Create Space** in the sidebar. ⋯ → Space settings to change its name and colour.
 
-## 3. Import from Toby (optional)
-
-1. In Toby, export your data as **JSON** (account menu / Settings → Export).
-2. In TabNest: sidebar → **Import (shared file / Toby)** → choose the file → **Import**.
-   Each Toby space becomes a TabNest space, each list a collection.
-
-## 4. Sync a space with Git
+## 3. Sync a space with Git
 
 1. Create a repository (GitHub, GitLab or your company Forgejo). Private is fine, and so is an empty one.
 2. In TabNest open the space → click **Not synced** (next to Share) → **Git repository**.
@@ -48,7 +47,7 @@ updates according to its setting: **Auto-pull** applies it, **Ask me** shows a b
 
 **Token expired?** The space shows a red *Sync problem* banner → **Update token**.
 
-## 5. Share a space offline
+## 4. Share a space offline
 
 1. Open the space → **Share** → tick the spaces → fill in **Shared by** (your name + email) → **Download HTML file**.
 2. Send the `.html` file by email/Teams. Anyone can double-click it to open it in a browser, with no extension needed.
@@ -60,7 +59,7 @@ updates according to its setting: **Auto-pull** applies it, **Ask me** shows a b
 **Colleagues with TabNest** can follow your space live: give them **Read** access to the repo (repo → Settings → Collaborators).
 They then import your `.html` file, or create a space → **Git repository** → **Follow (pull only)** → same file path.
 
-## 6. Updating to a newer build
+## 5. Updating to a newer build
 
 1. Replace the extension folder's contents with the new build (or run `npm run build` if you load `dist`).
 2. Go to `chrome://extensions` → click ↻ (reload) on TabNest. Your spaces are kept.

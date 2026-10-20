@@ -14,12 +14,16 @@ export function contentOf(space: SpaceContent): SpaceContent {
           const card: Card = { id: k.id, title: k.title, url: k.url };
           if (k.note) card.note = k.note;
           if (k.favIconUrl) card.favIconUrl = k.favIconUrl;
+          if (k.image && isSafeImage(k.image)) card.image = k.image;
           return card;
         }),
       }),
     ),
   };
 }
+
+/** Only real images: small uploaded pictures (data:image/...) or web links. Anything else is dropped. */
+export const isSafeImage = (src: string) => /^data:image\/(png|jpeg|webp|gif);base64,/i.test(src) || /^https?:\/\//i.test(src);
 
 /** Stable hash of a space's content, used to detect local edits since the last sync. */
 export const hashContent = (space: SpaceContent): Promise<string> => sha256(JSON.stringify(contentOf(space)));
