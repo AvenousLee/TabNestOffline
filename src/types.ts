@@ -54,6 +54,8 @@ export interface SyncConfig {
   ignoredSha?: string;
   lastCheckedAt?: string;
   lastError?: string;
+  /** The file at the sync path exists but isn't a TabNest space (its version id), so it can be replaced on request. */
+  badFileSha?: string;
 }
 
 /** How a space behaves when exported as an offline HTML file. */

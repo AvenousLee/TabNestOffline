@@ -34,28 +34,29 @@ export function CardView({
   onDelete: () => void;
   readOnly?: boolean;
 }) {
-  return (
-    <a
-      className="card"
-      href={card.url}
-      title={card.url}
-      draggable={!readOnly}
-      onDragStart={(e) => startDrag(e, { kind: 'card', spaceId, colId, cardId: card.id }, card.url)}
-      onDragEnd={endDrag}
-    >
+  // A card without a link is a note: clicking it opens the editor instead of a page.
+  const isNote = !card.url;
+  const body = (
+    <>
       {card.image && <CardImage src={card.image} />}
       <div className="card-title">
-        <Favicon url={card.url} fallback={card.favIconUrl} title={card.title} />
-        <span>{card.title || card.url}</span>
+        {isNote ? <Icon name="note" size={16} className="note-icon" /> : <Favicon url={card.url} fallback={card.favIconUrl} title={card.title} />}
+        <span>{card.title || card.url || 'Note'}</span>
       </div>
       {card.note && (
         <div className="card-note" title={card.note}>
           {card.note}
         </div>
       )}
-      <div className="card-host">{hostOf(card.url)}</div>
+      {isNote ? <div className="card-host">Note</div> : <div className="card-host">{hostOf(card.url)}</div>}
       {!readOnly && (
-        <div className="card-actions" onClick={(e) => e.preventDefault()}>
+        <div
+          className="card-actions"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           <button className="icon-btn" title="Edit" onClick={onEdit}>
             <Icon name="edit" size={14} />
           </button>
@@ -64,6 +65,23 @@ export function CardView({
           </button>
         </div>
       )}
+    </>
+  );
+  const drag = {
+    draggable: !readOnly,
+    onDragStart: (e: React.DragEvent) => startDrag(e, { kind: 'card', spaceId, colId, cardId: card.id }, card.url || undefined),
+    onDragEnd: endDrag,
+  };
+  if (isNote) {
+    return (
+      <div className="card note-card" role="button" tabIndex={0} title={readOnly ? undefined : 'Click to edit this note'} onClick={readOnly ? undefined : onEdit} {...drag}>
+        {body}
+      </div>
+    );
+  }
+  return (
+    <a className="card" href={card.url} title={card.url} {...drag}>
+      {body}
     </a>
   );
 }

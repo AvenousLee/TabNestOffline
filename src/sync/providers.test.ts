@@ -161,3 +161,37 @@ describe('GitHub files over 1 MB', () => {
     expect(await getRepoFile(gh, 'space.json')).toEqual({ sha: 'big', text: '{"big":true}' });
   });
 });
+
+describe('sync path that is a folder', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('explains it instead of "not valid JSON"', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify([{ name: 'a.json', type: 'file' }]), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const { getRepoFile } = await import('./providers');
+    const fj: Remote = { id: 'f', label: 'x', kind: 'forgejo', baseUrl: 'https://git.test', owner: 'o', repo: 'r', branch: 'main', token: 't' };
+    await expect(getRepoFile(fj, 'spaces')).rejects.toThrow(/is a folder/);
+  });
+});
+
+describe('brand-new empty Forgejo repository', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('an empty list means "not uploaded yet"; the first upload creates the file (no branch named)', async () => {
+    let posted: Record<string, string> | null = null;
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit = {}) => {
+      const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { 'content-type': 'application/json' } });
+      const method = init.method ?? 'GET';
+      if (method === 'POST') {
+        posted = JSON.parse(String(init.body));
+        return json(201, { content: { sha: 'first' } });
+      }
+      if (url.includes('/contents/')) return json(200, []); // what Forgejo answers on an empty repo
+      if (url.endsWith('/repos/Avenous/SolutionTracker')) return json(200, { full_name: 'Avenous/SolutionTracker', empty: true, default_branch: 'main', permissions: { push: true } });
+      if (url.includes('/branches')) return json(200, []);
+      return json(404, {});
+    });
+    const { getRepoFile, putRepoFile } = await import('./providers');
+    const fj: Remote = { id: 'f', label: 'x', kind: 'forgejo', baseUrl: 'https://git.sophicauto.net', owner: 'Avenous', repo: 'SolutionTracker', branch: 'main', token: 't' };
+    expect(await getRepoFile(fj, 'spaces/solution-demo-list.json')).toBeNull();
+    expect(await putRepoFile(fj, 'spaces/solution-demo-list.json', '{}', undefined, 'first')).toBe('first');
+    expect(posted).not.toHaveProperty('branch');
+  });
+});

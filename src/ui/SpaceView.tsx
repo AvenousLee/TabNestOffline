@@ -175,6 +175,15 @@ function SyncErrorBanner({ space, onUpdateToken, onSettings }: { space: Space; o
           Update token
         </button>
       )}
+      {space.sync?.badFileSha && !isReadOnly(space) && (
+        <button
+          className="btn primary"
+          disabled={s.syncing[space.id]}
+          onClick={() => confirm(`Overwrite the file in the repo with “${space.name}”? Its old content stays in the repo's history.`) && void s.replaceRemoteFile(space.id)}
+        >
+          Replace it with this space
+        </button>
+      )}
       <button className="btn" onClick={() => void s.syncNow(space.id, true)} disabled={s.syncing[space.id]}>
         Try again
       </button>

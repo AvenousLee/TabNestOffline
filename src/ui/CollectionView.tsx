@@ -62,7 +62,7 @@ export function CollectionView({
     }
   };
 
-  const urls = col.cards.map((c) => c.url);
+  const urls = col.cards.map((c) => c.url).filter(Boolean);
 
   return (
     <section

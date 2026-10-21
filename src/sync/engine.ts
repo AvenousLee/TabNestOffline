@@ -90,14 +90,17 @@ export function applyRemote(space: Space, file: SpaceFile, sha: string, hash: st
     ...file.content,
     collections: file.content.collections.map((c) => ({ ...c, collapsed: collapsed.has(c.id) || undefined })),
     updatedAt: file.updatedAt,
-    sync: { ...space.sync!, base: { sha, hash, content: file.content }, ignoredSha: undefined, lastError: undefined, lastCheckedAt: nowIso() },
+    sync: { ...space.sync!, base: { sha, hash, content: file.content }, ignoredSha: undefined, lastError: undefined, badFileSha: undefined, lastCheckedAt: nowIso() },
   };
 }
 
 async function doPush(space: Space, remotes: Remote[], remoteSha: string | undefined, io: SyncIO): Promise<Space> {
   const hash = await hashContent(space);
   const sha = await io.push(space, remotes, serializeSpaceFile(toSpaceFile(space)), remoteSha);
-  return { ...space, sync: { ...space.sync!, base: { sha, hash, content: contentOf(space) }, ignoredSha: undefined, lastError: undefined, lastCheckedAt: nowIso() } };
+  return {
+    ...space,
+    sync: { ...space.sync!, base: { sha, hash, content: contentOf(space) }, ignoredSha: undefined, lastError: undefined, badFileSha: undefined, lastCheckedAt: nowIso() },
+  };
 }
 
 /**
@@ -110,14 +113,19 @@ export async function syncSpace(space: Space, remotes: Remote[], opts: { manual:
   if (!sync) return { space, pending: null, message: 'Not synced.' };
   const checked = (s: Space, extra: Partial<typeof sync> = {}): Space => ({
     ...s,
-    sync: { ...s.sync!, lastCheckedAt: nowIso(), lastError: undefined, ...extra },
+    sync: { ...s.sync!, lastCheckedAt: nowIso(), lastError: undefined, badFileSha: undefined, ...extra },
   });
 
   try {
     const raw = await io.fetch(space, remotes);
     let remote: DecideInput['remote'] = null;
     if (raw) {
-      const file = parseSpaceFile(raw.text);
+      let file: SpaceFile;
+      try {
+        file = parseSpaceFile(raw.text);
+      } catch (e) {
+        throw new BadFileError(raw.sha, raw.text, e instanceof Error ? e.message : String(e));
+      }
       remote = { sha: raw.sha, hash: await hashContent(file.content), file };
     }
     const localHash = await hashContent(space);
@@ -161,7 +169,8 @@ export async function syncSpace(space: Space, remotes: Remote[], opts: { manual:
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return { space: { ...space, sync: { ...sync, lastCheckedAt: nowIso(), lastError: msg } }, pending: null, message: msg };
+    const badFileSha = e instanceof BadFileError ? e.sha : undefined;
+    return { space: { ...space, sync: { ...sync, lastCheckedAt: nowIso(), lastError: msg, badFileSha } }, pending: null, message: msg };
   }
 }
 
@@ -175,8 +184,8 @@ export async function syncSpace(space: Space, remotes: Remote[], opts: { manual:
 export async function mergeSyncResult(current: Space, snapshot: Space, result: Space): Promise<Space | null> {
   // Settings the user may have changed meanwhile win; only the sync bookkeeping comes from the result.
   if (!current.sync || !result.sync) return null;
-  const { base, ignoredSha, lastCheckedAt, lastError } = result.sync;
-  const sync = { ...current.sync, base, ignoredSha, lastCheckedAt, lastError };
+  const { base, ignoredSha, lastCheckedAt, lastError, badFileSha } = result.sync;
+  const sync = { ...current.sync, base, ignoredSha, lastCheckedAt, lastError, badFileSha };
 
   const unchanged = current.updatedAt === snapshot.updatedAt && (await hashContent(current)) === (await hashContent(snapshot));
   if (unchanged) {
@@ -192,6 +201,26 @@ export async function mergeSyncResult(current: Space, snapshot: Space, result: S
   }
   if ((await hashContent(result)) === (await hashContent(snapshot))) return { ...current, sync };
   return null;
+}
+
+/** The file at the sync path exists but can't be read as a space. */
+export class BadFileError extends Error {
+  readonly sha: string;
+  constructor(sha: string, text: string, why: string) {
+    const t = text.trim();
+    const what = !t
+      ? 'The file in the repo is empty'
+      : `The file in the repo isn't TabNest data (${why.replace(/\.$/, '').toLowerCase()}; it starts with “${t.slice(0, 40).replace(/\s+/g, ' ')}${t.length > 40 ? '…' : ''}”)`;
+    super(`${what}. Click “Replace it with this space” to overwrite it, or choose another file path in Space settings.`);
+    this.sha = sha;
+  }
+}
+
+/** Overwrite an unreadable file at the sync path with this space (the user asked for it). */
+export async function replaceBadFile(space: Space, remotes: Remote[], io: SyncIO = realIO): Promise<Space> {
+  const sha = space.sync?.badFileSha;
+  if (!sha) throw new Error('Nothing to replace. Try syncing again.');
+  return doPush({ ...space, updatedAt: nowIso() }, remotes, sha, io);
 }
 
 export type Resolution ='take-theirs' | 'keep-mine' | 'ignore';

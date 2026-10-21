@@ -4,7 +4,7 @@ import { fetchPreviewImage } from '../lib/image';
 import * as db from '../storage/storage';
 import { newId, nowIso } from '../lib/util';
 import { hashContent } from '../lib/spaceFile';
-import { isReadOnly, mergePending, mergeSyncResult, resolvePending, syncSpace, type Resolution } from '../sync/engine';
+import { isReadOnly, mergePending, mergeSyncResult, replaceBadFile, resolvePending, syncSpace, type Resolution } from '../sync/engine';
 import { matchRemoteForUrl } from '../sync/providers';
 import { setBadge } from '../browser/tabs';
 
@@ -70,6 +70,7 @@ interface State {
   syncNow(spaceId: string, manual?: boolean): Promise<void>;
   resolve(spaceId: string, choice: Resolution | 'keep-both' | 'merge'): Promise<void>;
   dismissMergeNotes(spaceId: string): void;
+  replaceRemoteFile(spaceId: string): Promise<void>;
   importSpaces(files: SharedSpace[], follow: boolean): Promise<string[]>;
   saveProfile(p: Profile): void;
   savePrefs(p: Prefs): void;
@@ -386,6 +387,20 @@ export const useStore = create<State>()((set, get) => {
         get().showToast(choice === 'take-theirs' ? 'Updated to the latest version.' : choice === 'keep-mine' ? 'Your version was uploaded.' : 'Update ignored.');
       } catch (e) {
         get().showToast(e instanceof Error ? e.message : String(e));
+      }
+    },
+
+    async replaceRemoteFile(spaceId) {
+      const space = get().spaces.find((sp) => sp.id === spaceId);
+      if (!space?.sync?.badFileSha) return;
+      set((st) => ({ syncing: { ...st.syncing, [spaceId]: true } }));
+      try {
+        commitSpace(await replaceBadFile(space, get().remotes), false);
+        get().showToast(`Replaced the file in the repo with “${space.name}”.`);
+      } catch (e) {
+        get().showToast(e instanceof Error ? e.message : String(e));
+      } finally {
+        set((st) => ({ syncing: { ...st.syncing, [spaceId]: false } }));
       }
     },
 

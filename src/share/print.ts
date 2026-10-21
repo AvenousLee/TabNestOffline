@@ -24,9 +24,9 @@ export function buildPrintHtml(bundle: ShareBundle): string {
         .map(
           (c) => `<section class="col"><h2>${esc(c.name)} <span>${c.cards.length} ${c.cards.length === 1 ? 'link' : 'links'}</span></h2><div class="grid">${c.cards
             .map(
-              (k) => `<a class="card" href="${esc(safeHref(k.url))}">${isImage(k.image) ? `<img src="${esc(k.image)}" alt="">` : ''}<b>${esc(k.title || k.url)}</b>${
+              (k) => `<${k.url ? `a class="card" href="${esc(safeHref(k.url))}"` : 'div class="card note"'}>${isImage(k.image) ? `<img src="${esc(k.image)}" alt="">` : ''}<b>${esc(k.title || k.url || 'Note')}</b>${
                 k.note ? `<p>${esc(k.note)}</p>` : ''
-              }<small>${esc(hostOf(k.url))}</small><u>${esc(k.url)}</u></a>`,
+              }${k.url ? `<small>${esc(hostOf(k.url))}</small><u>${esc(k.url)}</u></a>` : '<small>Note</small></div>'}`,
             )
             .join('')}</div></section>`,
         )
@@ -55,6 +55,8 @@ h2 span { color: #6a6a75; font-size: 9pt; font-weight: 400; }
 .card p { margin: 0; color: #4a4a55; font-size: 9pt; overflow-wrap: anywhere; }
 .card small { color: #6a6a75; font-size: 8.5pt; }
 .card u { color: #2b59c3; font-size: 7.5pt; text-decoration: none; overflow-wrap: anywhere; }
+.card.note { border-left: 2.5pt solid #e8a33d; }
+.card.note p { color: #1d1d22; white-space: pre-line; }
 footer { margin-top: 16pt; color: #6a6a75; font-size: 8.5pt; }
 </style></head><body>${spaces}<footer>Shared${by} from TabNest on ${esc(date)}. Click a card to open its link.</footer></body></html>`;
 }

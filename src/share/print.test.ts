@@ -61,3 +61,20 @@ describe('PDF (print) layout', () => {
     expect(html).not.toMatch(/<script/i);
   });
 });
+
+describe('note cards (no link)', () => {
+  const notes: Space = {
+    ...space,
+    collections: [{ id: 'n', name: 'Notes', cards: [{ id: 'z', title: 'Call supplier', url: '', note: 'Ask about the\nQ4 delivery dates' }] }],
+  };
+  it('survive sharing and importing', () => {
+    const [back] = parseImport(buildShareHtml(buildBundle([notes], [])));
+    expect(back.content.collections[0].cards[0]).toMatchObject({ title: 'Call supplier', url: '', note: 'Ask about the\nQ4 delivery dates' });
+  });
+  it('appear in the PDF as a box, not a link', () => {
+    const html = buildPrintHtml(buildBundle([notes], []));
+    expect(html).toContain('<div class="card note">');
+    expect(html).toContain('Call supplier');
+    expect(html).not.toContain('href=""');
+  });
+});
