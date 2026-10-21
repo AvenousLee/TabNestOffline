@@ -90,3 +90,33 @@ describe('shared by', () => {
     expect(buildBundle([s], [forgejo], { name: ' ', contact: '' }).sharedBy).toBeUndefined();
   });
 });
+
+describe('original owner', () => {
+  const me = { name: 'Avenous', contact: 'avenous@corp.test' };
+  const colleague = { name: 'Ken', contact: 'ken@corp.test' };
+
+  it('the first person to share an unowned space is its owner', () => {
+    const b = buildBundle([space()], [], me);
+    expect(b.spaces[0].owner).toEqual(me);
+  });
+
+  it('a re-share keeps the original owner and records the new sharer', () => {
+    const [imported] = parseImport(buildShareHtml(buildBundle([space()], [], me)));
+    expect(imported.owner).toEqual(me);
+    const reshared = buildBundle([{ ...space(), owner: imported.owner }], [], colleague);
+    expect(reshared.spaces[0].owner).toEqual(me);
+    expect(reshared.sharedBy).toEqual(colleague);
+  });
+
+  it('older files without an owner use who shared them', () => {
+    const bundle = buildBundle([space()], [], me);
+    delete bundle.spaces[0].owner;
+    const html = buildShareHtml(bundle);
+    expect(parseImport(html)[0].owner).toEqual(me);
+  });
+
+  it('cleans owner details from untrusted files', () => {
+    const json = JSON.stringify({ format: 'tabnest.space', version: 1, id: 'x', updatedAt: '', owner: { name: 42, contact: '  a@b.c  ' }, content: { name: 'n', color: '#000', collections: [] } });
+    expect(parseImport(json)[0].owner).toEqual({ name: '', contact: 'a@b.c' });
+  });
+});

@@ -54,6 +54,21 @@ export function SpaceView({
           {space.collections.length} Collections
           <span className="sep" />
           {tabCount} tabs
+          {space.owner && !(space.owner.name === s.profile.name && space.owner.contact === s.profile.contact) && (
+            <>
+              <span className="sep" />
+              <span title={space.owner.contact ? `Contact: ${space.owner.contact}` : undefined}>
+                Owner:{' '}
+                {/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(space.owner.contact) ? (
+                  <a className="owner-link" href={`mailto:${space.owner.contact}`}>
+                    {space.owner.name || space.owner.contact}
+                  </a>
+                ) : (
+                  <b>{space.owner.name || space.owner.contact}</b>
+                )}
+              </span>
+            </>
+          )}
         </span>
         <span className="head-right">
           <SyncChip space={space} onSetup={onSettings} />

@@ -367,3 +367,4 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .note-card { cursor: text; border-left: 3px solid var(--warn); }
 .note-card .card-note { -webkit-line-clamp: 8; white-space: pre-line; color: var(--text); opacity: 0.85; }
 .note-icon { color: var(--warn); flex: none; margin-top: 1px; }
+.owner-link { color: var(--text); text-decoration: underline; text-decoration-color: var(--muted); }

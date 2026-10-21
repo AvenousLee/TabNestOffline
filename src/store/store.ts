@@ -70,6 +70,8 @@ interface State {
   syncNow(spaceId: string, manual?: boolean): Promise<void>;
   resolve(spaceId: string, choice: Resolution | 'keep-both' | 'merge'): Promise<void>;
   dismissMergeNotes(spaceId: string): void;
+  /** Mark spaces that have no owner yet as yours (done when you share them). */
+  claimOwnership(spaceIds: string[], me: Profile): void;
   replaceRemoteFile(spaceId: string): Promise<void>;
   importSpaces(files: SharedSpace[], follow: boolean): Promise<string[]>;
   saveProfile(p: Profile): void;
@@ -404,6 +406,11 @@ export const useStore = create<State>()((set, get) => {
       }
     },
 
+    claimOwnership(spaceIds, me) {
+      if (!me.name.trim() && !me.contact.trim()) return;
+      for (const id of spaceIds) editSpace(id, (sp) => (sp.owner ? sp : { ...sp, owner: { name: me.name.trim(), contact: me.contact.trim() } }), false);
+    },
+
     dismissMergeNotes(spaceId) {
       set((st) => {
         const next = { ...st.mergeNotes };
@@ -447,6 +454,7 @@ export const useStore = create<State>()((set, get) => {
           updatedAt: f.updatedAt,
           sync,
           share: existing?.share ?? { mode: f.checkUrl ? 'check' : 'snapshot', checkUrl: f.checkUrl },
+          owner: existing?.owner ?? f.owner,
         };
         if (existing) set((s) => ({ spaces: s.spaces.map((x) => (x.id === space.id ? space : x)) }));
         else set((s) => ({ spaces: [...s.spaces, space] }));
