@@ -161,3 +161,13 @@ describe('GitHub files over 1 MB', () => {
     expect(await getRepoFile(gh, 'space.json')).toEqual({ sha: 'big', text: '{"big":true}' });
   });
 });
+
+describe('sync path that is a folder', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('explains it instead of "not valid JSON"', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify([{ name: 'a.json', type: 'file' }]), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const { getRepoFile } = await import('./providers');
+    const fj: Remote = { id: 'f', label: 'x', kind: 'forgejo', baseUrl: 'https://git.test', owner: 'o', repo: 'r', branch: 'main', token: 't' };
+    await expect(getRepoFile(fj, 'spaces')).rejects.toThrow(/is a folder/);
+  });
+});

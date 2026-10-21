@@ -210,3 +210,35 @@ describe('merging a conflict', () => {
     expect(r.space.collections[0].cards).toHaveLength(3);
   });
 });
+
+describe('a file at the sync path that is not a TabNest space', () => {
+  const ioWith = (text: string) => {
+    let stored: { sha: string; text: string } = { sha: 'bad', text };
+    const io: SyncIO = {
+      fetch: async () => stored,
+      push: async (_s, _r, t, sha) => {
+        if (sha !== stored.sha) throw new Error('409');
+        stored = { sha: 'good', text: t };
+        return 'good';
+      },
+    };
+    return { io, get stored() { return stored; } };
+  };
+
+  it('says the file is empty and offers to replace it', async () => {
+    const r = await syncSpace(space(['a.com']), remotes, { manual: true }, ioWith('').io);
+    expect(r.space.sync?.lastError).toMatch(/is empty/);
+    expect(r.space.sync?.badFileSha).toBe('bad');
+  });
+
+  it('shows how a non-TabNest file starts, then replaces it on request', async () => {
+    const { replaceBadFile } = await import('./engine');
+    const srv = ioWith('<html>Login page</html>');
+    const r = await syncSpace(space(['a.com']), remotes, { manual: true }, srv.io);
+    expect(r.space.sync?.lastError).toMatch(/starts with “<html>Login page<\/html>”/);
+    const fixed = await replaceBadFile(r.space, remotes, srv.io);
+    expect(srv.stored.text).toContain('tabnest.space');
+    expect(fixed.sync?.badFileSha).toBeUndefined();
+    expect(fixed.sync?.lastError).toBeUndefined();
+  });
+});
