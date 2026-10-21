@@ -26,12 +26,15 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const fileRef = useRef<HTMLInputElement>(null);
 
   const normalized = /^[a-z][a-z0-9+.-]*:/i.test(url.trim()) ? url.trim() : url.trim() ? `https://${url.trim()}` : '';
-  let valid = false;
+  let linkOk = false;
   try {
-    valid = !!new URL(normalized);
+    linkOk = !!new URL(normalized);
   } catch {
-    valid = false;
+    linkOk = false;
   }
+  // The link is optional: without one the card is a note (needs a title or a description).
+  const hasLink = url.trim() !== '';
+  const valid = hasLink ? linkOk : !!(title.trim() || note.trim());
 
   const pickFile = async (file: Blob | null | undefined) => {
     if (!file) return;
@@ -62,7 +65,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
 
   // Runs from a click so Chrome can ask for access to that website.
   const grabPreview = async () => {
-    if (!valid) return;
+    if (!linkOk) return;
     setProblem('');
     try {
       if (!(await requestHostAccess(new URL(normalized).origin))) throw new Error('TabNest needs permission to read that website to get its preview.');
@@ -85,7 +88,14 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
 
   const save = () => {
     if (!valid) return;
-    const data = { title: title.trim() || normalized, url: normalized, note: note.trim() || undefined, image: (withPicture && image) || undefined };
+    // A note card with only a description: its first line becomes the title (not shown twice).
+    const noteTitle = note.trim().split('\n')[0].slice(0, 60);
+    const data = {
+      title: title.trim() || (hasLink ? normalized : noteTitle),
+      url: hasLink ? normalized : '',
+      note: (hasLink || title.trim() ? note.trim() : note.trim().slice(noteTitle.length).trim()) || undefined,
+      image: (withPicture && image) || undefined,
+    };
     if (target.card) s.updateCard(target.spaceId, target.colId, target.card.id, data);
     else s.addCard(target.spaceId, target.colId, data);
     const space = useStore.getState().spaces.find((sp) => sp.id === target.spaceId);
@@ -97,7 +107,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
 
   return (
     <Modal
-      title={target.card ? 'Edit link' : 'Add link'}
+      title={target.card ? 'Edit card' : 'Add card'}
       onClose={onClose}
       wide
       footer={
@@ -117,7 +127,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           save();
         }}
       >
-        <Field label="Link">
+        <Field label="Link (optional)" hint={hasLink && !linkOk ? 'That doesn’t look like a web address.' : 'Leave empty to make a note card, e.g. for a temporary note.'}>
           <input autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
         </Field>
         <Field label="Title">
@@ -155,7 +165,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
             Upload image
           </button>
-          <button type="button" className="btn" disabled={!valid || !!busy} onClick={() => void grabPreview()} title="Use the picture the website shows when its link is shared">
+          <button type="button" className="btn" disabled={!linkOk || !!busy} onClick={() => void grabPreview()} title="Use the picture the website shows when its link is shared">
             Use website preview
           </button>
           {image && (

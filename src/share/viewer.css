@@ -61,6 +61,9 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .card .t { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; overflow-wrap: anywhere; }
 .card img, .card .letter { width: 16px; height: 16px; border-radius: 3px; flex: none; margin-top: 2px; }
 .card .letter { background: var(--accent); color: #fff; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.card.note { border-left: 3px solid #e8a33d; }
+.card.note .n { -webkit-line-clamp: 8; white-space: pre-line; color: var(--text); }
+.letter.note { background: #e8a33d; }
 .card .h { color: var(--muted); font-size: 12px; margin-top: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card .n { color: var(--muted); font-size: 12px; }
 .empty { color: var(--muted); padding: 40px 0; }

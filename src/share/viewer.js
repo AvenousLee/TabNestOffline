@@ -59,7 +59,7 @@
   }
 
   function copyLinks(col) {
-    var text = col.cards.map(function (c) { return c.title + '\n' + c.url; }).join('\n\n');
+    var text = col.cards.map(function (c) { return [c.title, c.url || c.note].filter(Boolean).join('\n'); }).join('\n\n');
     if (navigator.clipboard) navigator.clipboard.writeText(text);
   }
 
@@ -119,12 +119,15 @@
       shown += cards.length;
       var grid = el('div', { class: 'grid' });
       cards.forEach(function (c) {
-        grid.appendChild(el('a', { class: 'card', href: safeUrl(c.url), target: '_blank', rel: 'noopener noreferrer', title: c.url }, [
+        var parts = [
           picture(c),
-          el('div', { class: 't' }, [icon(c), el('span', { text: c.title || c.url })]),
+          el('div', { class: 't' }, [c.url ? icon(c) : el('span', { class: 'letter note', text: '✎' }), el('span', { text: c.title || c.url || 'Note' })]),
           c.note ? el('div', { class: 'n', text: c.note, title: c.note }) : null,
-          el('div', { class: 'h', text: host(c.url) }),
-        ]));
+          el('div', { class: 'h', text: c.url ? host(c.url) : 'Note' }),
+        ];
+        grid.appendChild(c.url
+          ? el('a', { class: 'card', href: safeUrl(c.url), target: '_blank', rel: 'noopener noreferrer', title: c.url }, parts)
+          : el('div', { class: 'card note' }, parts));
       });
       main.appendChild(el('section', { class: 'col' }, [
         el('div', { class: 'col-head' }, [
