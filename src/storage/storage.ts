@@ -49,6 +49,7 @@ export interface Snapshot {
   remotes: Remote[];
   pending: PendingUpdate[];
   activeSpaceId?: string;
+  page?: Page;
   profile: Profile;
   prefs: Prefs;
 }
@@ -67,11 +68,11 @@ export async function loadAll(): Promise<Snapshot> {
     spaceOrder?: string[];
     remotes?: Remote[];
     pending?: PendingUpdate[];
-    ui?: { activeSpaceId?: string };
+    ui?: { activeSpaceId?: string; page?: Page };
   };
   const raw = await getRaw(spaceOrder.map(spaceKey));
   const spaces = spaceOrder.map((id) => raw[spaceKey(id)] as Space | undefined).filter((s): s is Space => !!s);
-  return { spaces, remotes, pending, activeSpaceId: ui.activeSpaceId, profile, prefs };
+  return { spaces, remotes, pending, activeSpaceId: ui.activeSpaceId, page: ui.page, profile, prefs };
 }
 
 export async function loadSpace(id: string): Promise<Space | undefined> {
@@ -85,7 +86,10 @@ export const saveRemotes = (remotes: Remote[]) => setRaw({ remotes });
 export const savePending = (pending: PendingUpdate[]) => setRaw({ pending });
 export const savePrefs = (prefs: Prefs) => setRaw({ prefs });
 export const saveProfile = (profile: Profile) => setRaw({ profile });
-export const saveUi = (ui: { activeSpaceId?: string }) => setRaw({ ui });
+export const saveUi = (ui: { activeSpaceId?: string; page?: Page }) => setRaw({ ui });
+
+/** What the main area shows: a space, or the Calendar page. */
+export type Page = 'space' | 'calendar';
 
 export async function loadRemotes(): Promise<Remote[]> {
   return ((await getRaw(['remotes'])).remotes as Remote[] | undefined) ?? [];
@@ -110,3 +114,10 @@ export function onExternalChange(cb: () => void): () => void {
   window.addEventListener('storage', listener);
   return () => window.removeEventListener('storage', listener);
 }
+
+// Generic keys for features that keep their own data (e.g. linked calendars, device-only).
+export async function loadKey<T>(key: string): Promise<T | undefined> {
+  return (await getRaw([key]))[key] as T | undefined;
+}
+export const saveKey = (key: string, value: unknown) => setRaw({ [key]: value });
+export const removeKeys = (keys: string[]) => removeRaw(keys);

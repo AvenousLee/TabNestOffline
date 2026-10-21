@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { activeSpace, useStore } from '../store/store';
 import { Sidebar } from './Sidebar';
 import { SpaceView, type CardTarget } from './SpaceView';
@@ -8,6 +8,9 @@ import { SpaceSettingsDialog } from './dialogs/SpaceSettingsDialog';
 import { RemotesDialog } from './dialogs/RemotesDialog';
 import { ShareDialog } from './dialogs/ShareDialog';
 import { ImportDialog } from './dialogs/ImportDialog';
+
+// Calendar code (incl. the iCal reader) loads only when the Calendar page is opened.
+const CalendarPage = lazy(() => import('./calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })));
 
 type Dialog =
   | { type: 'card'; target: CardTarget }
@@ -29,8 +32,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    document.title = space ? `${space.name} · TabNest` : 'TabNest';
-  }, [space]);
+    document.title = s.page === 'calendar' ? 'Calendar · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
+  }, [space, s.page]);
 
   if (!s.ready) return null;
   const settingsSpace = dialog?.type === 'settings' ? s.spaces.find((x) => x.id === dialog.spaceId) : undefined;
@@ -43,7 +46,11 @@ export function App() {
         onShareMany={() => setDialog({ type: 'share', ids: space ? [space.id] : [] })}
       />
       <div className="content">
-        {space ? (
+        {s.page === 'calendar' && !s.query.trim() ? (
+          <Suspense fallback={<main className="space-view"><p className="empty">Loading calendar…</p></main>}>
+            <CalendarPage />
+          </Suspense>
+        ) : space ? (
           <SpaceView
             space={space}
             onEditCard={(target) => setDialog({ type: 'card', target })}

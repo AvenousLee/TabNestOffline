@@ -150,6 +150,7 @@ shows how many spaces have an update waiting. Every upload is a normal git commi
 
 ## Ideas for later
 
+- Calendar: **Sign in with Google** to create/delete events on your own calendars ("My calendars") (needs a Google Cloud OAuth client); Outlook via Microsoft sign-in.
 - Toby import: the parser exists (`src/share/toby.ts`) but is hidden from the UI, because Toby currently has no export.
 - Edge works today as-is (same Chromium APIs). Firefox needs a `browser_specific_settings` manifest entry and testing.
 - Tags, notes view, starred spaces, "Next" reading list, tab-limit warnings.

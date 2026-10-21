@@ -19,6 +19,13 @@ const PATHS = {
   check: 'M5 12l5 5L20 7',
   alert: 'M12 3l10 18H2zM12 10v5M12 18h.01',
   tabs: 'M3 7h18v13H3zM3 7l2-3h6l2 3',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5',
+  left: 'M15 6l-6 6 6 6',
+  right: 'M9 6l6 6-6 6',
+  eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  eyeOff: 'M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6 0 10 6 10 6a17 17 0 0 1-3.2 3.7M6.2 7.6A17 17 0 0 0 2 12s4 7 10 7a9.6 9.6 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  pin: 'M12 21s-6-5.3-6-11a6 6 0 1 1 12 0c0 5.7-6 11-6 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

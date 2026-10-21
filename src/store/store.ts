@@ -29,6 +29,8 @@ interface State {
   remotes: Remote[];
   pending: PendingUpdate[];
   activeSpaceId?: string;
+  /** Main area: the active space, or the Calendar page. */
+  page: db.Page;
   profile: Profile;
   prefs: Prefs;
   query: string;
@@ -44,6 +46,7 @@ interface State {
   showToast(msg: string): void;
 
   setActive(id: string): void;
+  openCalendar(): void;
   addSpace(name: string, color?: string): string;
   updateSpaceMeta(id: string, patch: Partial<Pick<Space, 'name' | 'color'>>): void;
   updateSpaceSettings(id: string, patch: { sync?: SyncConfig | null; share?: Space['share'] }): void;
@@ -124,11 +127,16 @@ export const useStore = create<State>()((set, get) => {
     syncing: {},
     syncMessage: {},
     mergeNotes: {},
+    page: 'space',
 
     async init() {
       if (initStarted) return;
       initStarted = true;
       await get().reload();
+      // Early test builds created separate empty "calendar" spaces; the calendar is now one page.
+      for (const sp of get().spaces) {
+        if ((sp as { kind?: string }).kind === 'calendar' && sp.collections.length === 0) get().deleteSpace(sp.id);
+      }
       if (get().spaces.length === 0) {
         const id = get().addSpace('Personal', SPACE_COLORS[0]);
         get().addCollection(id, 'Getting started', [
@@ -152,6 +160,7 @@ export const useStore = create<State>()((set, get) => {
         pending: snap.pending,
         profile: snap.profile,
         prefs: snap.prefs,
+        page: s.ready ? s.page : (snap.page ?? 'space'),
         activeSpaceId: snap.spaces.some((x) => x.id === (s.activeSpaceId ?? snap.activeSpaceId))
           ? (s.activeSpaceId ?? snap.activeSpaceId)
           : snap.spaces[0]?.id,
@@ -165,13 +174,18 @@ export const useStore = create<State>()((set, get) => {
     },
 
     setActive(id) {
-      set({ activeSpaceId: id, query: '' });
-      void db.saveUi({ activeSpaceId: id });
+      set({ activeSpaceId: id, query: '', page: 'space' });
+      void db.saveUi({ activeSpaceId: id, page: 'space' });
+    },
+
+    openCalendar() {
+      set({ page: 'calendar', query: '' });
+      void db.saveUi({ activeSpaceId: get().activeSpaceId, page: 'calendar' });
     },
 
     addSpace(name, color) {
       const space = blankSpace(name, color ?? SPACE_COLORS[get().spaces.length % SPACE_COLORS.length]);
-      set((s) => ({ spaces: [...s.spaces, space], activeSpaceId: space.id }));
+      set((s) => ({ spaces: [...s.spaces, space], activeSpaceId: space.id, page: 'space' }));
       void db.saveSpace(space);
       persistOrder();
       void db.saveUi({ activeSpaceId: space.id });

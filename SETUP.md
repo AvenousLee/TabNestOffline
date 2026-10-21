@@ -27,6 +27,20 @@ You should see TabNest with a **Personal** space and a "Getting started" collect
   Tick *Automatically add website previews* to get pictures whenever you save tabs (Chrome asks once for access to all websites).
 - **Spaces:** **+ Create Space** in the sidebar. ⋯ → Space settings to change its name and colour.
 
+## Calendar (view your team calendars)
+
+1. Click **Calendar** at the top of the sidebar (one calendar page; spaces stay for your tabs).
+2. Next to **Other calendars** click **+** and paste an **iCal address**:
+   - **Google Calendar:** Settings → your calendar → *Integrate calendar* → **Secret address in iCal format**.
+   - **Outlook / Office 365:** Settings → Calendar → *Shared calendars* → *Publish a calendar* → copy the **ICS** link.
+   Chrome asks once to allow that website → **Allow**.
+3. Tick/untick a calendar to show/hide it; **⋯** next to it to change colour, rename, refresh, replace the link or remove it.
+4. Switch between **Year / Month / Week / Agenda**; click an event for details and links.
+
+Linked calendars are **view only** for now (create and cancel events in Google/Outlook; they appear within ~15 minutes, or press ↻).
+**My calendars** will hold your own Google calendars once *Sign in with Google* is added.
+Calendar links stay **on this device** (a secret address works like a password), so link them again on another computer.
+
 ## 3. Sync a space with Git
 
 1. Create a repository (GitHub, GitLab or your company Forgejo). Private is fine, and so is an empty one.

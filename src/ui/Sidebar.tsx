@@ -50,6 +50,15 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
         <kbd>/</kbd>
       </label>
 
+      {/* One Calendar page for all linked calendars (spaces stay for tabs). */}
+      <button className={`space-item cal-entry${s.page === 'calendar' && !s.query ? ' active' : ''}`} onClick={() => s.openCalendar()}>
+        <span className="cal-entry-icon">
+          <Icon name="calendar" size={16} />
+          <b>{new Date().getDate()}</b>
+        </span>
+        <span className="space-label">Calendar</span>
+      </button>
+
       <div className="side-section">
         <span>Spaces</span>
         <button className="icon-btn" title="Create space" onClick={() => s.addSpace('New space')}>
@@ -63,7 +72,7 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
           return (
             <button
               key={space.id}
-              className={`space-item${space.id === s.activeSpaceId && !s.query ? ' active' : ''}${over === space.id ? ' over' : ''}`}
+              className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over === space.id ? ' over' : ''}`}
               onClick={() => s.setActive(space.id)}
               draggable
               onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
