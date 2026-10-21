@@ -66,6 +66,9 @@ wins and a green note lists what was decided. (With **Auto-pull**, clash-free me
 **Colleagues with TabNest** can follow your space live: give them **Read** access to the repo (repo → Settings → Collaborators).
 They then import your `.html` file, or create a space → **Git repository** → **Follow (pull only)** → same file path.
 
+**Owner:** the first time you share a space, your name and contact from **Shared by** become its **owner**. The owner stays with the space
+when others import or re-share it (they show up as "Shared by"), so anyone holding a copy (HTML or PDF) can reach the original owner.
+
 ## 5. Updating to a newer build
 
 1. Replace the extension folder's contents with the new build (or run `npm run build` if you load `dist`).

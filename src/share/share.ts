@@ -2,7 +2,7 @@
 // anyone can open in a browser, and import such files (or space .json files) back.
 
 import type { Profile, Remote, ShareBundle, SharedSpace, Space } from '../types';
-import { toSpaceFile, validateSpaceFile } from '../lib/spaceFile';
+import { cleanProfile, toSpaceFile, validateSpaceFile } from '../lib/spaceFile';
 import { nowIso } from '../lib/util';
 import { rawFileUrl, sourcePageUrl } from '../sync/providers';
 import { looksLikeToby, parseToby } from './toby';
@@ -37,6 +37,8 @@ export function buildBundle(spaces: Space[], remotes: Remote[], sharedBy?: Profi
     exportedAt: nowIso(),
     spaces: spaces.map((s) => {
       const out: SharedSpace = toSpaceFile(s);
+      const me = cleanProfile(sharedBy);
+      if (!out.owner && me) out.owner = me;
       const checkUrl = resolveCheckUrl(s, remotes);
       const sourceUrl = resolveSourceUrl(s, remotes);
       if (checkUrl) out.checkUrl = checkUrl;
@@ -101,9 +103,12 @@ export function parseImport(text: string): SharedSpace[] {
   }
   const d = data as { format?: string; spaces?: unknown[] };
   if (d.format === 'tabnest.share' && Array.isArray(d.spaces)) {
+    // Older files only said who shared them: treat that person as the owner.
+    const sharer = cleanProfile((data as { sharedBy?: unknown }).sharedBy);
     return d.spaces.map((s) => {
       const checkUrl = (s as { checkUrl?: unknown }).checkUrl;
       const file = validateSpaceFile(s);
+      if (!file.owner && sharer) file.owner = sharer;
       return typeof checkUrl === 'string' ? { ...file, checkUrl } : file;
     });
   }

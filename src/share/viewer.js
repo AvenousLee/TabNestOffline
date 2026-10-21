@@ -58,6 +58,33 @@
     return img;
   }
 
+  function isEmail(s) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s || ''); }
+  function samePerson(a, b) { return !!a && !!b && (a.name || '') === (b.name || '') && (a.contact || '') === (b.contact || ''); }
+
+  // Name + contact, with a click-to-email link when the contact is an email address.
+  function person(p) {
+    var bits = [el('b', { text: p.name || p.contact })];
+    if (p.name && p.contact) {
+      bits.push(document.createTextNode(' · '));
+      bits.push(isEmail(p.contact) ? el('a', { href: 'mailto:' + p.contact, text: p.contact }) : el('span', { text: p.contact }));
+    }
+    return bits;
+  }
+
+  // "Owner: … · Shared by: …" so anyone with a copy can find the person behind it.
+  function whoLine(space) {
+    var owner = space.owner;
+    var sharer = bundle.sharedBy;
+    if (!owner && !sharer) return null;
+    var kids = [];
+    if (owner) kids.push(el('span', { text: 'Owner: ' }), el('span', null, person(owner)));
+    if (sharer && !samePerson(owner, sharer)) {
+      if (owner) kids.push(el('span', { class: 'sep', text: '·' }));
+      kids.push(el('span', { text: 'Shared by: ' }), el('span', null, person(sharer)));
+    }
+    return el('div', { class: 'who' }, kids);
+  }
+
   function copyLinks(col) {
     var text = col.cards.map(function (c) { return [c.title, c.url || c.note].filter(Boolean).join('\n'); }).join('\n\n');
     if (navigator.clipboard) navigator.clipboard.writeText(text);
@@ -92,6 +119,8 @@
         search,
       ]),
     ]);
+    var ownerLine = whoLine(space);
+    if (ownerLine) main.appendChild(ownerLine);
 
     var up = state.updates[space.id];
     if (up) {
@@ -175,7 +204,7 @@
   // Shown when the file could not check for a newer version: explains why and
   // offers the ways forward (ask the owner, open the source, sign in with a token).
   function problemBanner(space, problem) {
-    var owner = bundle.sharedBy || {};
+    var owner = space.owner || bundle.sharedBy || {};
     var who = owner.name || 'the person who sent you this file';
     var reasons = {
       failed: 'The source needs you to be signed in (or you are offline / off the company network).',

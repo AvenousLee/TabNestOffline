@@ -41,6 +41,10 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .head h1 { margin: 0; font-size: 24px; display: flex; gap: 10px; align-items: center; }
 .meta { color: var(--muted); font-size: 12px; }
 .search { margin-left: auto; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); width: 220px; }
+.who { margin-top: 10px; color: var(--muted); font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; align-items: baseline; }
+.who b { color: var(--text); font-weight: 600; }
+.who a { color: var(--accent); text-decoration: underline; }
+.who .sep { margin: 0 4px; }
 .banner { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--banner); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 14px 0 0; }
 .banner span { flex: 1; min-width: 200px; }
 .banner.warn { border-color: #e8a33d; background: rgba(232, 163, 61, 0.12); }

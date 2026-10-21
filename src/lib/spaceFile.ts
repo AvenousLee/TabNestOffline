@@ -1,4 +1,4 @@
-import type { Card, Collection, Space, SpaceContent, SpaceFile } from '../types';
+import type { Card, Collection, Profile, Space, SpaceContent, SpaceFile } from '../types';
 import { newId, sha256 } from './util';
 
 /** Strip UI-only fields (like collapsed) so they don't count as content changes. */
@@ -29,7 +29,18 @@ export const isSafeImage = (src: string) => /^data:image\/(png|jpeg|webp|gif);ba
 export const hashContent = (space: SpaceContent): Promise<string> => sha256(JSON.stringify(contentOf(space)));
 
 export function toSpaceFile(space: Space): SpaceFile {
-  return { format: 'tabnest.space', version: 1, id: space.id, updatedAt: space.updatedAt, content: contentOf(space) };
+  const file: SpaceFile = { format: 'tabnest.space', version: 1, id: space.id, updatedAt: space.updatedAt, content: contentOf(space) };
+  if (space.owner) file.owner = space.owner;
+  return file;
+}
+
+/** A name/contact pair from a file we don't control: strings only, trimmed and length-limited. */
+export function cleanProfile(p: unknown): Profile | undefined {
+  const o = p as Partial<Profile> | undefined;
+  if (!o || typeof o !== 'object') return undefined;
+  const name = typeof o.name === 'string' ? o.name.trim().slice(0, 120) : '';
+  const contact = typeof o.contact === 'string' ? o.contact.trim().slice(0, 200) : '';
+  return name || contact ? { name, contact } : undefined;
 }
 
 export const serializeSpaceFile = (file: SpaceFile): string => JSON.stringify(file, null, 2) + '\n';
@@ -57,7 +68,9 @@ export function validateSpaceFile(data: unknown): SpaceFile {
       if (!card || typeof card.url !== 'string') throw new Error('Space file has a broken link.');
     }
   }
+  const owner = cleanProfile(f.owner);
   return {
+    ...(owner ? { owner } : {}),
     format: 'tabnest.space',
     version: 1,
     id: String(f.id ?? ''),

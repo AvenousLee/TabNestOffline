@@ -90,6 +90,7 @@ export function applyRemote(space: Space, file: SpaceFile, sha: string, hash: st
     ...file.content,
     collections: file.content.collections.map((c) => ({ ...c, collapsed: collapsed.has(c.id) || undefined })),
     updatedAt: file.updatedAt,
+    owner: file.owner ?? space.owner,
     sync: { ...space.sync!, base: { sha, hash, content: file.content }, ignoredSha: undefined, lastError: undefined, badFileSha: undefined, lastCheckedAt: nowIso() },
   };
 }
@@ -195,6 +196,7 @@ export async function mergeSyncResult(current: Space, snapshot: Space, result: S
       name: result.name,
       color: result.color,
       updatedAt: result.updatedAt,
+      owner: result.owner ?? current.owner,
       collections: result.collections.map((c) => ({ ...c, collapsed: collapsed.has(c.id) || undefined })),
       sync,
     };

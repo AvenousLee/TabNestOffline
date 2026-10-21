@@ -31,9 +31,10 @@ export function buildPrintHtml(bundle: ShareBundle): string {
             .join('')}</div></section>`,
         )
         .join('');
+      const ownerLine = sp.owner ? `<div class="owner">Owner: <b>${esc(sp.owner.name || sp.owner.contact)}</b>${sp.owner.name && sp.owner.contact ? ` · ${/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(sp.owner.contact) ? `<a href="mailto:${esc(sp.owner.contact)}">${esc(sp.owner.contact)}</a>` : esc(sp.owner.contact)}` : ''}</div>` : '';
       return `<article class="space"><h1><i style="background:${esc(sp.content.color)}"></i>${esc(sp.content.name)}</h1><div class="meta">${sp.content.collections.length} collections · ${n} links · version of ${esc(
         new Date(sp.updatedAt).toLocaleString(),
-      )}</div>${cols || '<p class="meta">This space is empty.</p>'}</article>`;
+      )}</div>${ownerLine}${cols || '<p class="meta">This space is empty.</p>'}</article>`;
     })
     .join('');
   const title = bundle.spaces.length === 1 ? bundle.spaces[0].content.name : `${bundle.spaces.length} shared spaces`;
@@ -57,6 +58,9 @@ h2 span { color: #6a6a75; font-size: 9pt; font-weight: 400; }
 .card u { color: #2b59c3; font-size: 7.5pt; text-decoration: none; overflow-wrap: anywhere; }
 .card.note { border-left: 2.5pt solid #e8a33d; }
 .card.note p { color: #1d1d22; white-space: pre-line; }
+.owner { font-size: 9.5pt; margin: -6pt 0 10pt; color: #4a4a55; }
+.owner b { color: #1d1d22; }
+.owner a { color: #2b59c3; }
 footer { margin-top: 16pt; color: #6a6a75; font-size: 8.5pt; }
 </style></head><body>${spaces}<footer>Shared${by} from TabNest on ${esc(date)}. Click a card to open its link.</footer></body></html>`;
 }

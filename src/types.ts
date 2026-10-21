@@ -72,6 +72,8 @@ export interface Space extends SpaceContent {
   updatedAt: string;
   sync?: SyncConfig;
   share: ShareSettings;
+  /** Who originally shared this space. Kept when it's imported, re-shared or synced, so readers can reach them. */
+  owner?: Profile;
 }
 
 export type RemoteKind = 'github' | 'forgejo' | 'gitlab';
@@ -107,6 +109,8 @@ export interface SpaceFile {
   id: string;
   updatedAt: string;
   content: SpaceContent;
+  /** Original owner (name + contact). */
+  owner?: Profile;
 }
 
 /** Personal preferences (this browser only, not synced). */

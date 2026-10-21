@@ -33,6 +33,10 @@ export function ShareDialog({ initial, onClose }: { initial: string[]; onClose: 
   const doExport = async () => {
     const profile = { name: name.trim(), contact: contact.trim() };
     if (profile.name !== s.profile.name || profile.contact !== s.profile.contact) s.saveProfile(profile);
+    s.claimOwnership(
+      chosen.map((sp) => sp.id),
+      profile,
+    );
     let bundle = buildBundle(chosen, s.remotes, profile);
     let note = '';
     try {

@@ -78,3 +78,11 @@ describe('note cards (no link)', () => {
     expect(html).not.toContain('href=""');
   });
 });
+
+describe('owner in the PDF', () => {
+  it('shows the owner with a clickable email', () => {
+    const html = buildPrintHtml(buildBundle([{ ...space, owner: { name: 'Avenous', contact: 'avenous@corp.test' } }], []));
+    expect(html).toContain('Owner: <b>Avenous</b>');
+    expect(html).toContain('href="mailto:avenous@corp.test"');
+  });
+});
