@@ -102,8 +102,12 @@ export async function getRepoFile(remote: Remote, path: string): Promise<RemoteF
   if (res.status === 404) return fileMissing(remote);
   if (!res.ok) throw await failure(res, 'Reading from git');
   const json = (await res.json()) as unknown;
-  // A folder comes back as a list of its files.
-  if (Array.isArray(json)) throw new SyncError(`"${path}" in the repo is a folder, not a file. Pick another file path in Space settings.`);
+  // A list means a folder... except that Forgejo answers an empty list for any path in a
+  // brand-new empty repo. Then the file simply isn't there yet: the first upload creates it.
+  if (Array.isArray(json)) {
+    if (json.length === 0) return fileMissing(remote);
+    throw new SyncError(`"${path}" in the repo is a folder, not a file. Pick another file path in Space settings.`);
+  }
   const body = json as { sha: string; content?: string; type?: string; encoding?: string; size?: number };
   if (body.type && body.type !== 'file') throw new SyncError(`"${path}" in the repo is a folder, not a file.`);
   // GitHub leaves "content" empty for files over 1 MB (e.g. spaces with many pictures); read the blob instead.
