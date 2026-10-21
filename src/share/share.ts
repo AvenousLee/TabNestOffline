@@ -74,9 +74,14 @@ export function buildShareHtml(bundle: ShareBundle): string {
 `;
 }
 
-export function shareFileName(spaces: Space[]): string {
+/** File name without extension: the space's name (or "TabNest spaces" for several). */
+export function shareBaseName(spaces: Space[]): string {
   const base = spaces.length === 1 ? spaces[0].name : 'TabNest spaces';
-  return `${base.replace(/[\\/:*?"<>|]+/g, '').trim() || 'space'}.html`;
+  return base.replace(/[\\/:*?"<>|]+/g, '').trim() || 'space';
+}
+
+export function shareFileName(spaces: Space[]): string {
+  return `${shareBaseName(spaces)}.html`;
 }
 
 /** Read a shared .html file, a space .json file, a bundle .json, or a Toby export. Returns the spaces inside. */
