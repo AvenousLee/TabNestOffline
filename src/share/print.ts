@@ -61,8 +61,11 @@ footer { margin-top: 16pt; color: #6a6a75; font-size: 8.5pt; }
 </style></head><body>${spaces}<footer>Shared${by} from TabNest on ${esc(date)}. Click a card to open its link.</footer></body></html>`;
 }
 
-/** Print the page in a hidden frame; Chrome's print window lets the user choose "Save as PDF". */
-export async function printToPdf(html: string): Promise<void> {
+/**
+ * Print the page in a hidden frame; Chrome's print window lets the user choose "Save as PDF".
+ * `fileName` becomes the suggested PDF name (Chrome uses the tab's title for it).
+ */
+export async function printToPdf(html: string, fileName: string): Promise<void> {
   const frame = document.createElement('iframe');
   frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
   document.body.appendChild(frame);
@@ -78,9 +81,19 @@ export async function printToPdf(html: string): Promise<void> {
   ]);
   const win = frame.contentWindow!;
   // Remove the frame once printing is done (or after a minute, whichever comes first).
-  const cleanup = () => setTimeout(() => frame.remove(), 500);
+  const oldTitle = document.title;
+  document.title = fileName;
+  const cleanup = () =>
+    setTimeout(() => {
+      frame.remove();
+      document.title = oldTitle;
+    }, 500);
   win.addEventListener('afterprint', cleanup, { once: true });
-  setTimeout(() => frame.isConnected && frame.remove(), 60_000);
+  setTimeout(() => {
+    if (!frame.isConnected) return;
+    frame.remove();
+    document.title = oldTitle;
+  }, 60_000);
   win.focus();
   win.print();
 }

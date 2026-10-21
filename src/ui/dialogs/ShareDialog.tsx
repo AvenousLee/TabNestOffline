@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/store';
 import { serializeSpaceFile, toSpaceFile } from '../../lib/spaceFile';
 import { slugify } from '../../lib/util';
-import { buildBundle, buildShareHtml, downloadText, resolveCheckUrl, shareFileName } from '../../share/share';
+import { buildBundle, buildShareHtml, downloadText, resolveCheckUrl, shareBaseName, shareFileName } from '../../share/share';
 import { buildPrintHtml, embedLinkedImages, linkedImageOrigins, printToPdf } from '../../share/print';
 import { requestHostAccess } from '../../browser/tabs';
 import { Field, Modal } from '../Modal';
@@ -50,7 +50,7 @@ export function ShareDialog({ initial, onClose }: { initial: string[]; onClose: 
         s.showToast(`Share file downloaded. Send it by email, Teams or a shared drive.${note}`);
       } else {
         setBusy('Opening the print window…');
-        await printToPdf(buildPrintHtml(bundle));
+        await printToPdf(buildPrintHtml(bundle), shareBaseName(chosen));
         if (note) s.showToast(note.trim());
       }
       onClose();
