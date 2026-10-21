@@ -61,41 +61,40 @@ footer { margin-top: 16pt; color: #6a6a75; font-size: 8.5pt; }
 </style></head><body>${spaces}<footer>Shared${by} from TabNest on ${esc(date)}. Click a card to open its link.</footer></body></html>`;
 }
 
+const JOB_KEY = 'tabnest-print-job';
+
+interface PrintJob {
+  html: string;
+  fileName: string;
+}
+
 /**
- * Print the page in a hidden frame; Chrome's print window lets the user choose "Save as PDF".
- * `fileName` becomes the suggested PDF name (Chrome uses the tab's title for it).
+ * Open the print layout in its own tab (print.html), which shows Chrome's print
+ * window: choose "Save as PDF". Printing a real page (not a hidden frame) keeps
+ * the links clickable in the PDF, and the tab title becomes the file name.
  */
 export async function printToPdf(html: string, fileName: string): Promise<void> {
-  const frame = document.createElement('iframe');
-  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-  document.body.appendChild(frame);
-  await new Promise<void>((resolve) => {
-    frame.onload = () => resolve();
-    frame.srcdoc = html;
-  });
-  const doc = frame.contentDocument!;
-  // Wait for pictures, so they appear in the PDF (give up on slow ones after 8 s).
-  await Promise.race([
-    Promise.all([...doc.images].map((img) => (img.complete ? null : new Promise((r) => ((img.onload = r), (img.onerror = r)))))),
-    new Promise((r) => setTimeout(r, 8000)),
-  ]);
-  const win = frame.contentWindow!;
-  // Remove the frame once printing is done (or after a minute, whichever comes first).
-  const oldTitle = document.title;
-  document.title = fileName;
-  const cleanup = () =>
-    setTimeout(() => {
-      frame.remove();
-      document.title = oldTitle;
-    }, 500);
-  win.addEventListener('afterprint', cleanup, { once: true });
-  setTimeout(() => {
-    if (!frame.isConnected) return;
-    frame.remove();
-    document.title = oldTitle;
-  }, 60_000);
-  win.focus();
-  win.print();
+  const job: PrintJob = { html, fileName };
+  if (typeof chrome !== 'undefined' && chrome.storage?.local && chrome.tabs?.create) {
+    await chrome.storage.local.set({ [JOB_KEY]: job });
+    await chrome.tabs.create({ url: chrome.runtime.getURL('print.html') });
+    return;
+  }
+  // Outside the extension (npm run dev): same idea with localStorage and a normal window.
+  localStorage.setItem(JOB_KEY, JSON.stringify(job));
+  window.open('print.html', '_blank');
+}
+
+/** Used by print.html: take (and remove) the waiting print job. */
+export async function takePrintJob(): Promise<PrintJob | null> {
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    const job = (await chrome.storage.local.get(JOB_KEY))[JOB_KEY] as PrintJob | undefined;
+    await chrome.storage.local.remove(JOB_KEY);
+    return job ?? null;
+  }
+  const raw = localStorage.getItem(JOB_KEY);
+  localStorage.removeItem(JOB_KEY);
+  return raw ? (JSON.parse(raw) as PrintJob) : null;
 }
 
 /** Web addresses of linked (not uploaded) pictures in a bundle, grouped by site. */

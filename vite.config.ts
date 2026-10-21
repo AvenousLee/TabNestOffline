@@ -19,6 +19,7 @@ export default defineConfig(({ command }) => {
     rollupOptions: {
       input: {
         newtab: resolve(__dirname, 'newtab.html'),
+        print: resolve(__dirname, 'print.html'),
         background: resolve(__dirname, 'src/background.ts'),
       },
       output: {

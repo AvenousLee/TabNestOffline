@@ -51,7 +51,7 @@ export function ShareDialog({ initial, onClose }: { initial: string[]; onClose: 
       } else {
         setBusy('Opening the print window…');
         await printToPdf(buildPrintHtml(bundle), shareBaseName(chosen));
-        if (note) s.showToast(note.trim());
+        s.showToast(`The PDF page opened in a new tab. Choose “Save as PDF” in the print window.${note}`);
       }
       onClose();
     } catch (e) {
