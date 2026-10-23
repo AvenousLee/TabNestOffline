@@ -5,7 +5,7 @@ import { endDrag, startDrag } from './dnd';
 import { Favicon } from './CardView';
 import { Icon } from './icons';
 
-export function OpenTabsPanel() {
+export function OpenTabsPanel({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const [tabs, setTabs] = useState<OpenTab[]>([]);
   const s = useStore();
   const space = activeSpace(s);
@@ -23,11 +23,27 @@ export function OpenTabsPanel() {
     s.showToast(`Saved ${tabs.length} tabs to ${space.name}`);
   };
 
+  if (collapsed) {
+    return (
+      <aside className="open-tabs collapsed">
+        <button className="rail-btn" title="Show open tabs  ]" onClick={onToggle}>
+          <Icon name="collapseLeft" />
+          <Icon name="tabs" />
+          <span className="rail-count">{tabs.length}</span>
+          <span className="rail-label">Open Tabs</span>
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside className="open-tabs">
       <div className="panel-head">
         <Icon name="tabs" />
         <span>Open Tabs</span>
+        <button className="icon-btn panel-toggle" title="Hide open tabs  ]" onClick={onToggle}>
+          <Icon name="collapseRight" />
+        </button>
       </div>
       <div className="panel-sub">
         <span>

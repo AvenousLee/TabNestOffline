@@ -3,7 +3,19 @@ import { useStore } from '../store/store';
 import { acceptsDrop, endDrag, readDrop, startDrag } from './dnd';
 import { Icon } from './icons';
 
-export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () => void; onImport: () => void; onShareMany: () => void }) {
+export function Sidebar({
+  onRemotes,
+  onImport,
+  onShareMany,
+  collapsed,
+  onToggle,
+}: {
+  onRemotes: () => void;
+  onImport: () => void;
+  onShareMany: () => void;
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
   const s = useStore();
   const searchRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -14,12 +26,13 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
       const t = e.target as HTMLElement;
       if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(t.tagName) && !t.isContentEditable) {
         e.preventDefault();
-        searchRef.current?.focus();
+        if (collapsed) onToggle();
+        requestAnimationFrame(() => searchRef.current?.focus());
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [collapsed, onToggle]);
 
   const onDrop = (e: React.DragEvent, spaceId: string, index: number) => {
     e.preventDefault();
@@ -38,20 +51,31 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       <div className="brand">
         <img src="icons/icon-32.png" alt="" width={26} height={26} />
-        <span>TabNest</span>
+        <span className="label">TabNest</span>
+        <button className="icon-btn panel-toggle" title={collapsed ? 'Show sidebar  [' : 'Hide sidebar  ['} onClick={onToggle}>
+          <Icon name={collapsed ? 'collapseRight' : 'collapseLeft'} />
+        </button>
       </div>
 
-      <label className="search-box">
+      <label
+        className="search-box"
+        title={collapsed ? 'Search  /' : undefined}
+        onClick={() => {
+          if (!collapsed) return;
+          onToggle();
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }}
+      >
         <Icon name="search" />
         <input ref={searchRef} placeholder="Search" value={s.query} onChange={(e) => s.setQuery(e.target.value)} />
         <kbd>/</kbd>
       </label>
 
       {/* One Calendar page for all linked calendars (spaces stay for tabs). */}
-      <button className={`space-item cal-entry${s.page === 'calendar' && !s.query ? ' active' : ''}`} onClick={() => s.openCalendar()}>
+      <button className={`space-item cal-entry${s.page === 'calendar' && !s.query ? ' active' : ''}`} onClick={() => s.openCalendar()} title={collapsed ? 'Calendar' : undefined}>
         <span className="cal-entry-icon">
           <Icon name="calendar" size={16} />
           <b>{new Date().getDate()}</b>
@@ -60,7 +84,7 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
       </button>
 
       <div className="side-section">
-        <span>Spaces</span>
+        <span className="label">Spaces</span>
         <button className="icon-btn" title="Create space" onClick={() => s.addSpace('New space')}>
           <Icon name="plus" size={14} />
         </button>
@@ -84,6 +108,7 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
               }}
               onDragLeave={() => setOver(null)}
               onDrop={(e) => onDrop(e, space.id, i)}
+              title={collapsed ? space.name : undefined}
             >
               <span className="space-dot" style={{ background: space.color }}>
                 {space.name.charAt(0).toUpperCase()}
@@ -100,19 +125,19 @@ export function Sidebar({ onRemotes, onImport, onShareMany }: { onRemotes: () =>
         })}
       </nav>
 
-      <button className="side-link" onClick={() => s.addSpace('New space')}>
-        <Icon name="plus" /> Create Space
+      <button className="side-link" title="Create space" onClick={() => s.addSpace('New space')}>
+        <Icon name="plus" /> <span className="label">Create Space</span>
       </button>
 
       <div className="side-bottom">
-        <button className="side-link" onClick={onImport}>
-          <Icon name="upload" /> Import shared file
+        <button className="side-link" title="Import shared file" onClick={onImport}>
+          <Icon name="upload" /> <span className="label">Import shared file</span>
         </button>
-        <button className="side-link" onClick={onShareMany}>
-          <Icon name="share" /> Share several spaces
+        <button className="side-link" title="Share several spaces" onClick={onShareMany}>
+          <Icon name="share" /> <span className="label">Share several spaces</span>
         </button>
-        <button className="side-link" onClick={onRemotes}>
-          <Icon name="git" /> Git repositories
+        <button className="side-link" title="Git repositories" onClick={onRemotes}>
+          <Icon name="git" /> <span className="label">Git repositories</span>
           {s.remotes.length > 0 && <span className="count">{s.remotes.length}</span>}
         </button>
       </div>

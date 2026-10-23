@@ -117,6 +117,10 @@ export interface SpaceFile {
 export interface Prefs {
   /** Fetch each saved link's website preview picture automatically. */
   autoPreview: boolean;
+  /** Left sidebar shrunk to a strip of space icons. */
+  leftCollapsed?: boolean;
+  /** Right "Open Tabs" panel hidden to a thin strip. */
+  rightCollapsed?: boolean;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */

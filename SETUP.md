@@ -20,6 +20,8 @@ You should see TabNest with a **Personal** space and a "Getting started" collect
 - **Organise:** **New Collection**; drag cards to reorder or into another collection; drop a card on a space in the sidebar to move it there.
 - **Rename:** double-click a space or collection name.
 - **Search:** press `/` and type. Search covers every space.
+- **More room:** click « (top of the sidebar) to shrink the left side to space icons, and » (Open Tabs) to hide the right side.
+  Or press `[` and `]`. TabNest remembers your choice.
 - **Note cards:** click **+** in a collection and leave **Link** empty to keep a quick note (title and/or description). Click the note to edit it.
 - **Pictures and descriptions:** click ✏️ on a card. Add a description (up to 500 characters; the card shows 3 lines, hover for the rest).
   Pictures are optional: tick **Add a picture** to show the picture options.

@@ -35,15 +35,35 @@ export function App() {
     document.title = s.page === 'calendar' ? 'Calendar · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
   }, [space, s.page]);
 
+  const leftCollapsed = !!s.prefs.leftCollapsed;
+  const rightCollapsed = !!s.prefs.rightCollapsed;
+  const toggleLeft = () => s.savePrefs({ ...useStore.getState().prefs, leftCollapsed: !useStore.getState().prefs.leftCollapsed });
+  const toggleRight = () => s.savePrefs({ ...useStore.getState().prefs, rightCollapsed: !useStore.getState().prefs.rightCollapsed });
+
+  // "[" and "]" show/hide the side panels (when not typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.ctrlKey || e.metaKey || e.altKey || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable) return;
+      if (e.key === '[') toggleLeft();
+      if (e.key === ']') toggleRight();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!s.ready) return null;
   const settingsSpace = dialog?.type === 'settings' ? s.spaces.find((x) => x.id === dialog.spaceId) : undefined;
 
   return (
-    <div className="app">
+    <div className={`app${leftCollapsed ? ' left-collapsed' : ''}${rightCollapsed ? ' right-collapsed' : ''}`}>
       <Sidebar
         onRemotes={() => setDialog({ type: 'remotes' })}
         onImport={() => setDialog({ type: 'import' })}
         onShareMany={() => setDialog({ type: 'share', ids: space ? [space.id] : [] })}
+        collapsed={leftCollapsed}
+        onToggle={toggleLeft}
       />
       <div className="content">
         {s.page === 'calendar' && !s.query.trim() ? (
@@ -64,7 +84,7 @@ export function App() {
           </main>
         )}
       </div>
-      <OpenTabsPanel />
+      <OpenTabsPanel collapsed={rightCollapsed} onToggle={toggleRight} />
 
       {dialog?.type === 'card' && <CardDialog target={dialog.target} onClose={close} />}
       {settingsSpace && <SpaceSettingsDialog space={settingsSpace} onClose={close} />}
