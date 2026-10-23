@@ -20,6 +20,8 @@ const PATHS = {
   alert: 'M12 3l10 18H2zM12 10v5M12 18h.01',
   tabs: 'M3 7h18v13H3zM3 7l2-3h6l2 3',
   note: 'M6 3h9l4 4v14H6zM15 3v4h4M9 11h7M9 15h7M9 19h4',
+  collapseLeft: 'M11 6l-6 6 6 6M18 6l-6 6 6 6',
+  collapseRight: 'M6 6l6 6-6 6M13 6l6 6-6 6',
 } as const;
 
 export type IconName = keyof typeof PATHS;
