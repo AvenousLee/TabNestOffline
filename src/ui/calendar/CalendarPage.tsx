@@ -284,6 +284,7 @@ function CalendarRow({ s }: { s: CalendarSource }) {
   const [editing, setEditing] = useState(false);
   const google = s.kind === 'google';
   const busy = google ? Object.keys(cal.busy).some((k) => k.startsWith(`${s.id}:`) && cal.busy[k]) : cal.busy[s.id];
+  const remove = () => confirm(`Delete “${s.name}” from TabNest? (It is not deleted in Google/Outlook.)`) && cal.removeSource(s.id);
 
   return (
     <div className={`cal-row${s.lastError ? ' err' : ''}`} ref={ref}>
@@ -298,7 +299,15 @@ function CalendarRow({ s }: { s: CalendarSource }) {
         {s.lastError && <Icon name="alert" size={12} className="err-text" />}
         {busy && <Icon name="sync" size={12} className="spin" />}
       </label>
-      <button className="icon-btn cal-row-more" title="Options" onClick={() => setMenu(!menu)}>
+      <button className="icon-btn cal-row-act" title={google ? 'Rename / colour' : 'Edit name, link, colour'} onClick={() => setEditing(true)}>
+        <Icon name="edit" size={13} />
+      </button>
+      {!google && (
+        <button className="icon-btn cal-row-act danger" title="Delete this calendar" onClick={remove}>
+          <Icon name="trash" size={13} />
+        </button>
+      )}
+      <button className="icon-btn cal-row-more" title="More options" onClick={() => setMenu(!menu)}>
         <Icon name="more" size={14} />
       </button>
       {menu && (
@@ -312,7 +321,7 @@ function CalendarRow({ s }: { s: CalendarSource }) {
           <button onClick={() => (setEditing(true), setMenu(false))}>{google ? 'Rename / colour…' : 'Edit name, link, colour…'}</button>
           <button onClick={() => (void cal.refresh(s.id, true), setMenu(false))}>Refresh now</button>
           {!google && (
-            <button className="danger" onClick={() => (setMenu(false), confirm(`Delete “${s.name}” from TabNest? (It is not deleted in Google/Outlook.)`) && cal.removeSource(s.id))}>
+            <button className="danger" onClick={() => (setMenu(false), remove())}>
               Delete
             </button>
           )}
