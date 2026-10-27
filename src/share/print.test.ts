@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Space } from '../types';
 import { buildBundle, buildShareHtml, parseImport } from './share';
-import { buildPrintHtml, embedLinkedImages, linkedImageOrigins } from './print';
+import { buildPrintHtml, embedFavicons, embedLinkedImages, iconKey, linkedImageOrigins } from './print';
 
 const UPLOADED = 'data:image/webp;base64,UklGRg==';
 const space: Space = {
@@ -43,6 +43,33 @@ describe('pictures in shared HTML files', () => {
     });
     expect(failing).toMatchObject({ embedded: 0, failed: 1 });
     expect(failing.bundle.spaces[0].content.collections[0].cards[1].image).toBe('https://cdn.test/b.png');
+  });
+});
+
+describe('site icons in shared HTML files', () => {
+  const PNG = 'data:image/png;base64,iVBORw0KGgo=';
+
+  it('keeps one icon per site inside the file', async () => {
+    const withTwin: Space = { ...space, collections: [{ ...space.collections[0], cards: [...space.collections[0].cards, { id: 'd', title: 'A again', url: 'https://a.test/page' }] }] };
+    const asked: string[] = [];
+    const bundle = await embedFavicons(buildBundle([withTwin], []), async (url) => {
+      asked.push(url);
+      return url.startsWith('https://a.test') ? PNG : null; // b.test: Chrome has no icon
+    });
+    expect(asked).toEqual(['https://a.test/', 'https://b.test/']); // not the javascript: card, not a.test twice
+    expect(bundle.icons).toEqual({ 'a.test': PNG });
+    expect(buildShareHtml(bundle)).toContain(PNG);
+  });
+
+  it('skips icons that are not small PNGs or fail to load', async () => {
+    const bundle = buildBundle([space], []);
+    const res = await embedFavicons(bundle, async (url) => {
+      if (url.startsWith('https://a.test')) return 'data:image/svg+xml;base64,PHN2Zz4=';
+      throw new Error('offline');
+    });
+    expect(res).toBe(bundle);
+    expect(iconKey('javascript:alert(1)')).toBe('');
+    expect(iconKey('https://www.gitlab.com:8443/x')).toBe('www.gitlab.com:8443');
   });
 });
 

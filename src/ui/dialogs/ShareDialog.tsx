@@ -3,8 +3,8 @@ import { useStore } from '../../store/store';
 import { serializeSpaceFile, toSpaceFile } from '../../lib/spaceFile';
 import { slugify } from '../../lib/util';
 import { buildBundle, buildShareHtml, downloadText, resolveCheckUrl, shareBaseName, shareFileName } from '../../share/share';
-import { buildPrintHtml, embedLinkedImages, linkedImageOrigins, printToPdf } from '../../share/print';
-import { requestHostAccess } from '../../browser/tabs';
+import { buildPrintHtml, embedFavicons, embedLinkedImages, linkedImageOrigins, printToPdf } from '../../share/print';
+import { faviconLoader, requestHostAccess } from '../../browser/tabs';
 import { Field, Modal } from '../Modal';
 import { Icon } from '../icons';
 
@@ -50,6 +50,7 @@ export function ShareDialog({ initial, onClose }: { initial: string[]; onClose: 
         } else note = ' Linked pictures stay as links (no permission to download them).';
       }
       if (format === 'html') {
+        bundle = await embedFavicons(bundle, faviconLoader());
         downloadText(shareFileName(chosen), buildShareHtml(bundle), 'text/html');
         s.showToast(`Share file downloaded. Send it by email, Teams or a shared drive.${note}`);
       } else {
