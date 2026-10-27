@@ -390,3 +390,17 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .rail-btn:hover { background: var(--card); color: var(--text); }
 .rail-count { font-size: 11px; background: var(--card-hover); color: var(--text); border-radius: 10px; padding: 0 6px; }
 .rail-label { writing-mode: vertical-rl; font-size: 12px; letter-spacing: 0.5px; }
+
+/* Calendar: Google accounts, editing */
+.warn-text { color: var(--warn); }
+.cal-row-more { opacity: 0.35; }
+.cal-account { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.cal-account-row { padding-left: 4px; }
+.cal-account-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--muted); }
+.cal-list-note.link-btn { display: inline-flex; align-items: center; gap: 4px; }
+.cal-form-when { display: flex; gap: 12px; flex-wrap: wrap; }
+.cal-form-row { display: flex; gap: 6px; }
+.cal-form-row input[type='date'] { flex: 1.4; }
+.cal-form-row input[type='time'] { flex: 1; }
+.cal-help ol { padding-left: 20px; margin: 6px 0; display: flex; flex-direction: column; gap: 6px; }
+.cal-redirect { display: inline-block; margin-top: 4px; padding: 2px 6px; background: var(--card); border-radius: 4px; word-break: break-all; user-select: all; }

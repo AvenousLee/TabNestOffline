@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { CalendarSource, CalEvent } from '../../calendar/types';
+import { useCalendar } from '../../calendar/calStore';
 import { describeTime, fmt } from '../../calendar/dates';
 import { Modal } from '../Modal';
 import { Icon } from '../icons';
@@ -29,9 +31,44 @@ function Linkified({ text }: { text: string }) {
   );
 }
 
-export function EventDetails({ event, source, onClose }: { event: CalEvent; source?: CalendarSource; onClose: () => void }) {
+export function EventDetails({ event, source, onEdit, onClose }: { event: CalEvent; source?: CalendarSource; onEdit: () => void; onClose: () => void }) {
+  const cal = useCalendar();
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const google = source?.kind === 'google';
+  const editable = google && !!source.canEdit && !!event.editable;
+
+  const remove = async () => {
+    if (!confirm(event.recurring ? `Delete this occurrence of “${event.title}”? Other dates of the repeating event stay.` : `Delete “${event.title}” from ${source?.name}?`)) return;
+    setError('');
+    setBusy(true);
+    try {
+      await cal.deleteEvent(event);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  };
+
   return (
-    <Modal title={event.title} onClose={onClose}>
+    <Modal
+      title={event.title}
+      onClose={onClose}
+      footer={
+        editable ? (
+          <>
+            <button className="btn danger" disabled={busy} onClick={() => void remove()}>
+              <Icon name="trash" /> {busy ? 'Deleting…' : 'Delete'}
+            </button>
+            <span className="grow" />
+            <button className="btn primary" disabled={busy} onClick={onEdit}>
+              <Icon name="edit" /> Edit
+            </button>
+          </>
+        ) : undefined
+      }
+    >
       <div className="cal-details">
         <div>
           <Icon name="clock" /> <span>{fmt.dayLong(event.start)}</span>
@@ -40,7 +77,7 @@ export function EventDetails({ event, source, onClose }: { event: CalEvent; sour
         {source && (
           <div>
             <span className="cal-swatch" style={{ background: source.color }} /> <span>{source.name}</span>
-            <span className="muted small"> · view only</span>
+            {!editable && <span className="muted small"> · view only</span>}
           </div>
         )}
         {event.location && (
@@ -57,7 +94,20 @@ export function EventDetails({ event, source, onClose }: { event: CalEvent; sour
           </div>
         )}
         {event.description && <Linkified text={event.description} />}
-        <p className="muted small">To change or cancel this event, open it in Google Calendar or Outlook (only its organiser can).</p>
+        {event.htmlLink && (
+          <a className="small" href={event.htmlLink} target="_blank" rel="noreferrer">
+            Open in Google Calendar
+          </a>
+        )}
+        {editable && event.recurring && <p className="muted small">This event repeats: Edit and Delete change this occurrence only.</p>}
+        {!editable && (
+          <p className="muted small">
+            {google && source?.canEdit
+              ? 'This is an invitation from someone else: only its organiser can change it.'
+              : 'To change or cancel this event, open it in Google Calendar or Outlook (only its organiser can).'}
+          </p>
+        )}
+        {error && <div className="status-line err">{error}</div>}
       </div>
     </Modal>
   );

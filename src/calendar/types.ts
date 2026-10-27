@@ -8,18 +8,30 @@ export type CalendarView = 'year' | 'month' | 'week' | 'agenda';
 /** A calendar shown on the Calendar page. */
 export interface CalendarSource {
   id: string;
-  /** "My calendars" (from your own signed-in account, later) or "Other calendars" (iCal links). */
+  /** "My calendars" (from a signed-in Google account) or "Other calendars" (iCal links). */
   group: 'mine' | 'other';
   /** Shown in the list; defaults to the calendar's own name. */
   name: string;
   color: string;
   /** Hidden calendars stay linked but their events aren't shown. */
   enabled: boolean;
-  kind: 'ical';
-  /** iCal address (webcal:// is turned into https://). */
+  kind: 'ical' | 'google';
+  /** iCal address (webcal:// is turned into https://). Empty for Google calendars. */
   url: string;
+  /** Google: the account's email and the calendar's id in it. */
+  account?: string;
+  calendarId?: string;
+  /** Google: the account may add and change events here (owner or writer). */
+  canEdit?: boolean;
   lastFetchedAt?: string;
   lastError?: string;
+}
+
+/** A Google account signed in on the Calendar page. */
+export interface GoogleAccount {
+  email: string;
+  /** Silent renewal failed: the user must click "Sign in again". */
+  needsSignIn?: boolean;
 }
 
 /** One occurrence of an event, ready to draw. */
@@ -36,4 +48,9 @@ export interface CalEvent {
   location?: string;
   description?: string;
   url?: string;
+  /** Google events: id of this occurrence, its page in Google Calendar, and whether TabNest may change it. */
+  googleId?: string;
+  htmlLink?: string;
+  recurring?: boolean;
+  editable?: boolean;
 }
