@@ -45,7 +45,7 @@ export function EditCalendarDialog({ source, onClose }: { source: CalendarSource
   };
 
   const remove = () => {
-    if (!confirm(`Delete “${source.name}” from TabNest? (The calendar itself is not deleted in Google/Outlook.)`)) return;
+    if (!confirm(isIcal ? `Delete “${source.name}” from TabNest? (The calendar itself is not deleted in Google/Outlook.)` : `Remove “${source.name}” from TabNest? It stays in Google; add it back with “Choose calendars…”.`)) return;
     cal.removeSource(source.id);
     onClose();
   };
@@ -57,11 +57,9 @@ export function EditCalendarDialog({ source, onClose }: { source: CalendarSource
       wide
       footer={
         <>
-          {isIcal && (
-            <button className="btn danger" onClick={remove}>
-              <Icon name="trash" /> Delete
-            </button>
-          )}
+          <button className="btn danger" onClick={remove}>
+            <Icon name="trash" /> {isIcal ? 'Delete' : 'Remove from TabNest'}
+          </button>
           <span className="grow" />
           <button className="btn ghost" onClick={onClose}>
             Cancel
@@ -95,7 +93,6 @@ export function EditCalendarDialog({ source, onClose }: { source: CalendarSource
         </Field>
         <button type="submit" hidden />
       </form>
-      {!isIcal && <p className="muted small">To remove Google calendars, remove the whole account (⋯ next to the account name).</p>}
       {error && <div className="status-line err">{error}</div>}
     </Modal>
   );

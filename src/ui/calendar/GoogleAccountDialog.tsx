@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useCalendar } from '../../calendar/calStore';
-import { canUseGoogle, redirectUri } from '../../calendar/google';
+import { canUseGoogle, redirectUri, type GoogleCalendarEntry } from '../../calendar/google';
 import { Field, Modal } from '../Modal';
 
 /** Sign in to a Google account (one more each time), after a one-time Google Cloud setup. */
-export function GoogleAccountDialog({ onClose }: { onClose: () => void }) {
+export function GoogleAccountDialog({ onSignedIn, onClose }: { onSignedIn: (email: string, calendars: GoogleCalendarEntry[]) => void; onClose: () => void }) {
   const cal = useCalendar();
   const [clientId, setClientId] = useState(cal.clientId);
   const [help, setHelp] = useState(!cal.clientId);
@@ -20,8 +20,8 @@ export function GoogleAccountDialog({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       if (clientId.trim() !== cal.clientId) cal.setClientId(clientId);
-      await useCalendar.getState().addGoogleAccount();
-      onClose(); // the Calendar page downloads the new calendars' events for the shown dates
+      const { account, calendars } = await useCalendar.getState().addGoogleAccount();
+      onSignedIn(account.email, calendars); // next: choose which calendars to show
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

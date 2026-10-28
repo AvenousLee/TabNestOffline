@@ -24,6 +24,7 @@ import {
   toCalEvent,
   TokenRejected,
   type EventDraft,
+  type GoogleCalendarEntry,
   type GoogleEvent,
   type GoogleToken,
 } from './google';
@@ -67,8 +68,12 @@ interface CalState {
   ensureRange(from: Date, to: Date): Promise<void>;
 
   setClientId(clientId: string): void;
-  /** Pick a Google account in Google's window and add its calendars. */
-  addGoogleAccount(): Promise<GoogleAccount>;
+  /** Pick a Google account in Google's window. Its calendars are added with setAccountCalendars. */
+  addGoogleAccount(): Promise<{ account: GoogleAccount; calendars: GoogleCalendarEntry[] }>;
+  /** Every calendar the account can read events of (for choosing which to show). */
+  accountCalendars(email: string): Promise<GoogleCalendarEntry[]>;
+  /** Show exactly these calendars of the account: adds the new ones, removes the others. */
+  setAccountCalendars(email: string, calendars: GoogleCalendarEntry[], chosenIds: string[]): void;
   reconnectAccount(email: string): Promise<void>;
   removeAccount(email: string): void;
   createEvent(sourceId: string, draft: EventDraft): Promise<void>;
@@ -162,33 +167,15 @@ export const useCalendar = create<CalState>()((set, get) => {
     }
   }
 
-  /** Add new calendars of the account, update names and edit rights of known ones. */
+  const canWrite = (c: GoogleCalendarEntry) => c.accessRole === 'owner' || c.accessRole === 'writer';
+
+  /** Update the edit rights of the account's chosen calendars. New calendars are only added when the user picks them. */
   async function syncCalendarList(email: string, token?: string): Promise<void> {
     const list = token ? await listCalendars(token) : await withToken(email, listCalendars);
-    const known = get().sources;
-    const used = new Set(known.map((s) => s.color));
-    const added: CalendarSource[] = [];
-    const updated = known.map((s) => {
-      if (s.account !== email) return s;
-      const g = list.find((c) => c.id === s.calendarId);
-      return g ? { ...s, canEdit: g.accessRole === 'owner' || g.accessRole === 'writer' } : s;
+    const sources = get().sources.map((s) => {
+      const g = s.account === email && list.find((c) => c.id === s.calendarId);
+      return g ? { ...s, canEdit: canWrite(g) } : s;
     });
-    for (const c of list) {
-      if (c.hidden || c.accessRole === 'freeBusyReader' || known.some((s) => s.account === email && s.calendarId === c.id)) continue;
-      added.push({
-        id: newId(),
-        group: 'mine',
-        kind: 'google',
-        url: '',
-        account: email,
-        calendarId: c.id,
-        name: c.summaryOverride || (c.primary ? 'Main calendar' : c.summary),
-        color: c.backgroundColor ?? CAL_COLORS.find((x) => !used.has(x)) ?? CAL_COLORS[0],
-        enabled: c.selected !== false,
-        canEdit: c.accessRole === 'owner' || c.accessRole === 'writer',
-      });
-    }
-    const sources = [...updated, ...added];
     set({ sources });
     persistSources(sources);
   }
@@ -385,7 +372,8 @@ export const useCalendar = create<CalState>()((set, get) => {
       if (!get().clientId) throw new Error('Add the Google client ID first.');
       const t = await googleSignIn(get().clientId, { interactive: true });
       // The main calendar's id is the account's email address.
-      const primary = (await listCalendars(t.accessToken)).find((c) => c.primary);
+      const calendars = (await listCalendars(t.accessToken)).filter((c) => c.accessRole !== 'freeBusyReader');
+      const primary = calendars.find((c) => c.primary);
       if (!primary) throw new Error('This Google account has no main calendar.');
       const email = primary.id;
       saveToken(email, t);
@@ -394,7 +382,36 @@ export const useCalendar = create<CalState>()((set, get) => {
       set({ accounts });
       persistAccounts(accounts);
       await syncCalendarList(email, t.accessToken);
-      return account;
+      return { account, calendars };
+    },
+
+    async accountCalendars(email) {
+      return (await withToken(email, listCalendars)).filter((c) => c.accessRole !== 'freeBusyReader');
+    },
+
+    setAccountCalendars(email, calendars, chosenIds) {
+      const chosen = new Set(chosenIds);
+      for (const s of get().sources.filter((x) => x.account === email && !chosen.has(x.calendarId!))) get().removeSource(s.id);
+      const known = get().sources;
+      const used = new Set(known.map((s) => s.color));
+      const added: CalendarSource[] = calendars
+        .filter((c) => chosen.has(c.id) && !known.some((s) => s.account === email && s.calendarId === c.id))
+        .map((c) => ({
+          id: newId(),
+          group: 'mine',
+          kind: 'google',
+          url: '',
+          account: email,
+          calendarId: c.id,
+          name: c.summaryOverride || (c.primary ? 'Main calendar' : c.summary),
+          color: c.backgroundColor ?? CAL_COLORS.find((x) => !used.has(x)) ?? CAL_COLORS[0],
+          enabled: true,
+          canEdit: canWrite(c),
+        }));
+      if (!added.length) return;
+      const sources = [...known, ...added];
+      set({ sources });
+      persistSources(sources);
     },
 
     async reconnectAccount(email) {

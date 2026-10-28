@@ -408,3 +408,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .cal-form-row input[type='time'] { flex: 1; }
 .cal-help ol { padding-left: 20px; margin: 6px 0; display: flex; flex-direction: column; gap: 6px; }
 .cal-redirect { display: inline-block; margin-top: 4px; padding: 2px 6px; background: var(--card); border-radius: 4px; word-break: break-all; user-select: all; }
+.cal-choose { display: flex; flex-direction: column; gap: 2px; max-height: 50vh; overflow-y: auto; }
+.cal-choose-row { margin: 0; padding: 6px 4px; border-radius: 6px; }
+.cal-choose-row:hover { background: var(--card); }
+.cal-choose-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

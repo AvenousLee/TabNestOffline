@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CalendarSource, CalendarView, CalEvent, GoogleAccount } from '../../calendar/types';
+import type { GoogleCalendarEntry } from '../../calendar/google';
 import { CAL_COLORS, useCalendar } from '../../calendar/calStore';
 import { addDays, addMonths, coversDay, dayKey, fmt, monthGrid, sameDay, startOfDay, startOfWeek, weekStartDay } from '../../calendar/dates';
+import { agendaDays } from '../../calendar/agenda';
 import { relativeTime } from '../../lib/util';
 import { Icon } from '../icons';
 import { AddCalendarDialog } from './AddCalendarDialog';
+import { ChooseCalendarsDialog } from './ChooseCalendarsDialog';
 import { EditCalendarDialog } from './EditCalendarDialog';
 import { EventDetails } from './EventDetails';
 import { EventForm } from './EventForm';
@@ -60,6 +63,8 @@ export function CalendarPage() {
   const [selected, setSelected] = useState<CalEvent | null>(null);
   /** Event form: an event to change, or a new one. */
   const [form, setForm] = useState<{ event?: CalEvent } | null>(null);
+  /** Choosing which calendars of a Google account to show (right after signing in: with its list). */
+  const [choosing, setChoosing] = useState<{ email: string; calendars?: GoogleCalendarEntry[] } | null>(null);
   const sources = cal.sources;
   const colorOf = useMemo(() => new Map(sources.map((s) => [s.id, s.color])), [sources]);
   const busy = sources.some((s) => cal.busy[s.id]);
@@ -101,7 +106,7 @@ export function CalendarPage() {
       </header>
 
       <div className="cal-layout">
-        <CalendarList sources={sources} accounts={cal.accounts} onAdd={setAdding} />
+        <CalendarList sources={sources} accounts={cal.accounts} onAdd={setAdding} onChoose={(email) => setChoosing({ email })} />
 
         <div className="cal">
           <div className="cal-toolbar">
@@ -150,7 +155,8 @@ export function CalendarPage() {
       </div>
 
       {adding === 'ical' && <AddCalendarDialog onClose={() => setAdding(null)} />}
-      {adding === 'google' && <GoogleAccountDialog onClose={() => setAdding(null)} />}
+      {adding === 'google' && <GoogleAccountDialog onSignedIn={(email, calendars) => (setAdding(null), setChoosing({ email, calendars }))} onClose={() => setAdding(null)} />}
+      {choosing && <ChooseCalendarsDialog email={choosing.email} calendars={choosing.calendars} onClose={() => setChoosing(null)} />}
       {selected && (
         <EventDetails
           event={selected}
@@ -178,7 +184,17 @@ function useMenu() {
 }
 
 /** "My calendars" (Google accounts) / "Other calendars" (iCal links) with colour checkboxes, like Google Calendar. */
-function CalendarList({ sources, accounts, onAdd }: { sources: CalendarSource[]; accounts: GoogleAccount[]; onAdd: (kind: 'ical' | 'google') => void }) {
+function CalendarList({
+  sources,
+  accounts,
+  onAdd,
+  onChoose,
+}: {
+  sources: CalendarSource[];
+  accounts: GoogleAccount[];
+  onAdd: (kind: 'ical' | 'google') => void;
+  onChoose: (email: string) => void;
+}) {
   const [open, setOpen] = useState({ mine: true, other: true });
   const other = sources.filter((s) => s.group !== 'mine');
   const toggle = (k: 'mine' | 'other') => setOpen((o) => ({ ...o, [k]: !o[k] }));
@@ -197,12 +213,14 @@ function CalendarList({ sources, accounts, onAdd }: { sources: CalendarSource[];
         (accounts.length ? (
           accounts.map((a) => (
             <div key={a.email} className="cal-account">
-              <AccountRow a={a} />
-              {sources
-                .filter((s) => s.account === a.email)
-                .map((s) => (
-                  <CalendarRow key={s.id} s={s} />
-                ))}
+              <AccountRow a={a} onChoose={() => onChoose(a.email)} />
+              {sources.some((s) => s.account === a.email) ? (
+                sources.filter((s) => s.account === a.email).map((s) => <CalendarRow key={s.id} s={s} />)
+              ) : (
+                <button className="cal-list-note link-btn" onClick={() => onChoose(a.email)}>
+                  + Choose calendars to show
+                </button>
+              )}
             </div>
           ))
         ) : (
@@ -233,7 +251,7 @@ function CalendarList({ sources, accounts, onAdd }: { sources: CalendarSource[];
 }
 
 /** A signed-in Google account: its email, "Sign in again" when needed, and a menu. */
-function AccountRow({ a }: { a: GoogleAccount }) {
+function AccountRow({ a, onChoose }: { a: GoogleAccount; onChoose: () => void }) {
   const cal = useCalendar();
   const { menu, setMenu, ref } = useMenu();
   const [error, setError] = useState('');
@@ -258,6 +276,7 @@ function AccountRow({ a }: { a: GoogleAccount }) {
         {menu && (
           <div className="cal-menu">
             <button onClick={() => (setMenu(false), void Promise.all(cal.sources.filter((s) => s.account === a.email).map((s) => cal.refresh(s.id, true))))}>Refresh now</button>
+            <button onClick={() => (setMenu(false), onChoose())}>Choose calendars…</button>
             <button onClick={() => void reconnect()}>Sign in again</button>
             <button
               className="danger"
@@ -284,7 +303,9 @@ function CalendarRow({ s }: { s: CalendarSource }) {
   const [editing, setEditing] = useState(false);
   const google = s.kind === 'google';
   const busy = google ? Object.keys(cal.busy).some((k) => k.startsWith(`${s.id}:`) && cal.busy[k]) : cal.busy[s.id];
-  const remove = () => confirm(`Delete “${s.name}” from TabNest? (It is not deleted in Google/Outlook.)`) && cal.removeSource(s.id);
+  const remove = () =>
+    confirm(google ? `Remove “${s.name}” from TabNest? It stays in Google; add it back with “Choose calendars…”.` : `Delete “${s.name}” from TabNest? (It is not deleted in Google/Outlook.)`) &&
+    cal.removeSource(s.id);
 
   return (
     <div className={`cal-row${s.lastError ? ' err' : ''}`} ref={ref}>
@@ -302,11 +323,9 @@ function CalendarRow({ s }: { s: CalendarSource }) {
       <button className="icon-btn cal-row-act" title={google ? 'Rename / colour' : 'Edit name, link, colour'} onClick={() => setEditing(true)}>
         <Icon name="edit" size={13} />
       </button>
-      {!google && (
-        <button className="icon-btn cal-row-act danger" title="Delete this calendar" onClick={remove}>
-          <Icon name="trash" size={13} />
-        </button>
-      )}
+      <button className="icon-btn cal-row-act danger" title={google ? 'Remove from TabNest (stays in Google)' : 'Delete this calendar'} onClick={remove}>
+        <Icon name="trash" size={13} />
+      </button>
       <button className="icon-btn cal-row-more" title="More options" onClick={() => setMenu(!menu)}>
         <Icon name="more" size={14} />
       </button>
@@ -320,11 +339,9 @@ function CalendarRow({ s }: { s: CalendarSource }) {
           {s.lastError && <p className="err-text small">{s.lastError}</p>}
           <button onClick={() => (setEditing(true), setMenu(false))}>{google ? 'Rename / colour…' : 'Edit name, link, colour…'}</button>
           <button onClick={() => (void cal.refresh(s.id, true), setMenu(false))}>Refresh now</button>
-          {!google && (
-            <button className="danger" onClick={() => (setMenu(false), remove())}>
-              Delete
-            </button>
-          )}
+          <button className="danger" onClick={() => (setMenu(false), remove())}>
+            {google ? 'Remove from TabNest' : 'Delete'}
+          </button>
           <p className="muted small">
             {google ? (s.canEdit ? 'You can add and change events' : 'View only') : 'View only'} · updated {relativeTime(s.lastFetchedAt)}
           </p>
@@ -494,25 +511,23 @@ function WeekView({ date, events, colorOf, onEvent }: ViewProps & { date: Date }
 }
 
 function AgendaView({ from, events, colorOf, onEvent }: ViewProps & { from: Date }) {
-  const byDay = new Map<string, { day: Date; list: CalEvent[] }>();
-  for (const e of events) {
-    // Multi-day events are listed on their first visible day (e.g. leave that started yesterday shows today).
-    const day = startOfDay(e.start < from ? from : e.start);
-    const k = dayKey(day);
-    if (!byDay.has(k)) byDay.set(k, { day, list: [] });
-    byDay.get(k)!.list.push(e);
-  }
-  if (!byDay.size) return <p className="empty">No events in the next {AGENDA_DAYS} days.</p>;
+  const days = agendaDays(events, from, AGENDA_DAYS);
+  if (!days.length) return <p className="empty">No events in the next {AGENDA_DAYS} days.</p>;
   return (
     <div className="cal-agenda">
-      {[...byDay.values()].map(({ day, list }) => (
+      {days.map(({ day, items }) => (
         <section key={dayKey(day)} className={sameDay(day, new Date()) ? 'today' : ''}>
           <h3>{fmt.dayLong(day)}</h3>
-          {list.map((e) => (
+          {items.map(({ e, day: n, days: total, when }) => (
             <button key={e.key} className="cal-agenda-row" onClick={() => onEvent(e)}>
               <span className="cal-swatch" style={{ background: colorOf.get(e.sourceId) }} />
-              <span className="cal-agenda-time">{e.allDay ? (addDays(e.end, -1) > e.start ? `until ${addDays(e.end, -1).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : 'All day') : fmt.time(e.start)}</span>
+              <span className="cal-agenda-time">{when}</span>
               <b>{e.title}</b>
+              {total > 1 && (
+                <span className="muted small">
+                  Day {n} of {total}
+                </span>
+              )}
               {e.location && <span className="muted small">{e.location}</span>}
             </button>
           ))}
