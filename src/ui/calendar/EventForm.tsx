@@ -105,7 +105,7 @@ export function EventForm({ event, day, onClose }: { event?: CalEvent; day?: Dat
           }}
         >
           <Field label="Title">
-            <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. AL – Avenous" />
+            <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. AL – Alex Tan" />
           </Field>
           <Field label="Calendar" hint={event?.recurring ? 'This is one occurrence of a repeating event: changes apply to this occurrence only.' : undefined}>
             <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} disabled={targets.length < 2}>

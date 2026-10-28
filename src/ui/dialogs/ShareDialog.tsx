@@ -135,7 +135,7 @@ export function ShareDialog({ initial, onClose }: { initial: string[]; onClose: 
       </p>
       <div className="row">
         <Field label="Your name">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Avenous" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex Tan" />
         </Field>
         <Field label="Contact" hint="Email gives readers a one-click “ask for the latest version” link. Or a Teams name.">
           <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="name@company.com" />

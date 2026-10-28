@@ -59,7 +59,7 @@ function ProfileSection() {
       >
         <div className="row">
           <Field label="Name">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Avenous Lee" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex Tan" />
           </Field>
           <Field label="Contact" hint="Email (becomes a mail link) or e.g. a Teams name.">
             <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="name@company.com" />
