@@ -69,6 +69,32 @@ export function faviconFor(pageUrl: string, fallback?: string): string | undefin
   return fallback;
 }
 
+async function faviconData(pageUrl: string): Promise<string | null> {
+  if (typeof chrome === 'undefined' || !chrome.runtime?.id) return null;
+  const res = await fetch(faviconFor(pageUrl)!);
+  if (!res.ok) return null;
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Loads site icons from Chrome's favicon cache as data URLs. Gives null when
+ * Chrome has no icon for the site (it would hand back its generic globe).
+ */
+export function faviconLoader(): (pageUrl: string) => Promise<string | null> {
+  let blank: Promise<string | null> | undefined;
+  return async (pageUrl) => {
+    blank ??= faviconData('https://no-icon.invalid/').catch(() => null);
+    const [none, data] = await Promise.all([blank, faviconData(pageUrl)]);
+    return data && data !== none ? data : null;
+  };
+}
+
 /** Number on the toolbar icon = spaces with updates waiting for a decision. */
 export function setBadge(count: number): void {
   if (typeof chrome === 'undefined' || !chrome.action) return;

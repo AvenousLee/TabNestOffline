@@ -145,4 +145,6 @@ export interface ShareBundle {
   exportedAt: string;
   sharedBy?: Profile;
   spaces: SharedSpace[];
+  /** Site icons inside the file (host → PNG data URL), so they show offline and for sites that block hotlinking. */
+  icons?: Record<string, string>;
 }

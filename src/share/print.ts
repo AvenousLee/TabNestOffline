@@ -101,6 +101,40 @@ export async function takePrintJob(): Promise<PrintJob | null> {
   return raw ? (JSON.parse(raw) as PrintJob) : null;
 }
 
+/** Key of a card's icon in ShareBundle.icons: the site's host. viewer.js looks it up the same way. */
+export function iconKey(url: string): string {
+  try {
+    return /^https?:/i.test(url) ? new URL(url).host : '';
+  } catch {
+    return '';
+  }
+}
+
+const MAX_ICON_LENGTH = 16_000;
+
+/**
+ * Put one icon per site inside the bundle, taken from Chrome's favicon cache
+ * like the app's own icons. Sites without an icon keep using the card's
+ * saved icon link (or the first letter).
+ */
+export async function embedFavicons(bundle: ShareBundle, load: (pageUrl: string) => Promise<string | null>): Promise<ShareBundle> {
+  const pages = new Map<string, string>();
+  for (const sp of bundle.spaces)
+    for (const c of sp.content.collections)
+      for (const k of c.cards) {
+        const key = k.url ? iconKey(k.url) : '';
+        if (key && !pages.has(key)) pages.set(key, k.url);
+      }
+  const icons: Record<string, string> = {};
+  await Promise.all(
+    [...pages].map(async ([key, url]) => {
+      const data = await load(url).catch(() => null);
+      if (data && /^data:image\/png;base64,/i.test(data) && data.length <= MAX_ICON_LENGTH) icons[key] = data;
+    }),
+  );
+  return Object.keys(icons).length ? { ...bundle, icons } : bundle;
+}
+
 /** Web addresses of linked (not uploaded) pictures in a bundle, grouped by site. */
 export function linkedImageOrigins(bundle: ShareBundle): string[] {
   const origins = new Set<string>();

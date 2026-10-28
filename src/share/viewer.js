@@ -41,10 +41,17 @@
   function safeUrl(u) { return /^(https?|ftp|file|mailto):/i.test(u) ? u : '#'; }
   function fmt(iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString(); }
 
+  // Same key as iconKey() in print.ts.
+  function iconKey(u) { try { return /^https?:/i.test(u) ? new URL(u).host : ''; } catch (e) { return ''; } }
+
+  // Site icon kept inside this file, else the icon link saved with the card, else the first letter.
   function icon(card) {
     var letter = el('span', { class: 'letter', text: (card.title || host(card.url) || '?').charAt(0).toUpperCase() });
-    if (!card.favIconUrl || !/^https?:/i.test(card.favIconUrl)) return letter;
-    var img = el('img', { src: card.favIconUrl, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
+    var kept = bundle.icons && bundle.icons[iconKey(card.url)];
+    var src = typeof kept === 'string' && /^data:image\/png;base64,/i.test(kept) ? kept
+      : card.favIconUrl && /^https?:/i.test(card.favIconUrl) ? card.favIconUrl : '';
+    if (!src) return letter;
+    var img = el('img', { src: src, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
     img.onerror = function () { img.replaceWith(letter); };
     return img;
   }
