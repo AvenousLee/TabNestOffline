@@ -393,7 +393,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 
 /* Calendar: Google accounts, editing */
 .warn-text { color: var(--warn); }
-.cal-row-more { opacity: 0.7; }
+.cal-row-more { opacity: 1; }
 /* Edit / Delete appear on hover (or keyboard focus), so names keep their room otherwise. */
 .cal-row-act { display: none; width: 24px; height: 24px; flex: none; }
 .cal-row:hover .cal-row-act, .cal-row:focus-within .cal-row-act { display: inline-flex; }
