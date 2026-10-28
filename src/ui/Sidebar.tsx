@@ -140,6 +140,9 @@ export function Sidebar({
           <Icon name="git" /> <span className="label">Git repositories</span>
           {s.remotes.length > 0 && <span className="count">{s.remotes.length}</span>}
         </button>
+        <button className={`side-link${s.page === 'settings' && !s.query ? ' active' : ''}`} title="Settings" onClick={() => s.openSettings()}>
+          <Icon name="settings" /> <span className="label">Settings</span>
+        </button>
       </div>
     </aside>
   );

@@ -88,8 +88,8 @@ export const savePrefs = (prefs: Prefs) => setRaw({ prefs });
 export const saveProfile = (profile: Profile) => setRaw({ profile });
 export const saveUi = (ui: { activeSpaceId?: string; page?: Page }) => setRaw({ ui });
 
-/** What the main area shows: a space, or the Calendar page. */
-export type Page = 'space' | 'calendar';
+/** What the main area shows: a space, the Calendar page or Settings. */
+export type Page = 'space' | 'calendar' | 'settings';
 
 export async function loadRemotes(): Promise<Remote[]> {
   return ((await getRaw(['remotes'])).remotes as Remote[] | undefined) ?? [];
@@ -121,3 +121,22 @@ export async function loadKey<T>(key: string): Promise<T | undefined> {
 }
 export const saveKey = (key: string, value: unknown) => setRaw({ [key]: value });
 export const removeKeys = (keys: string[]) => removeRaw(keys);
+
+/** Everything TabNest keeps on this device (for a backup file). */
+export async function loadEverything(): Promise<Record<string, unknown>> {
+  if (hasChromeStorage) return chrome.storage.local.get(null);
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(localStorage)) if (k.startsWith(LS_PREFIX)) out[k.slice(LS_PREFIX.length)] = JSON.parse(localStorage.getItem(k)!);
+  return out;
+}
+
+/** Replace everything with the contents of a backup. The page reloads afterwards. */
+export async function replaceEverything(data: Record<string, unknown>): Promise<void> {
+  if (hasChromeStorage) {
+    await chrome.storage.local.clear();
+    await chrome.storage.local.set(data);
+    return;
+  }
+  for (const k of Object.keys(localStorage)) if (k.startsWith(LS_PREFIX)) localStorage.removeItem(k);
+  for (const [k, v] of Object.entries(data)) localStorage.setItem(LS_PREFIX + k, JSON.stringify(v));
+}

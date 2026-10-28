@@ -11,6 +11,7 @@ import { ImportDialog } from './dialogs/ImportDialog';
 
 // Calendar code (incl. the iCal reader) loads only when the Calendar page is opened.
 const CalendarPage = lazy(() => import('./calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })));
+const SettingsPage = lazy(() => import('./SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 type Dialog =
   | { type: 'card'; target: CardTarget }
@@ -32,7 +33,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    document.title = s.page === 'calendar' ? 'Calendar · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
+    document.title = s.page === 'calendar' ? 'Calendar · TabNest' : s.page === 'settings' ? 'Settings · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
   }, [space, s.page]);
 
   const leftCollapsed = !!s.prefs.leftCollapsed;
@@ -69,6 +70,10 @@ export function App() {
         {s.page === 'calendar' && !s.query.trim() ? (
           <Suspense fallback={<main className="space-view"><p className="empty">Loading calendar…</p></main>}>
             <CalendarPage />
+          </Suspense>
+        ) : s.page === 'settings' && !s.query.trim() ? (
+          <Suspense fallback={<main className="space-view"><p className="empty">Loading settings…</p></main>}>
+            <SettingsPage onRemotes={() => setDialog({ type: 'remotes' })} />
           </Suspense>
         ) : space ? (
           <SpaceView

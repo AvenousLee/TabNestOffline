@@ -29,7 +29,7 @@ interface State {
   remotes: Remote[];
   pending: PendingUpdate[];
   activeSpaceId?: string;
-  /** Main area: the active space, or the Calendar page. */
+  /** Main area: the active space, the Calendar page or Settings. */
   page: db.Page;
   profile: Profile;
   prefs: Prefs;
@@ -47,6 +47,7 @@ interface State {
 
   setActive(id: string): void;
   openCalendar(): void;
+  openSettings(): void;
   addSpace(name: string, color?: string): string;
   updateSpaceMeta(id: string, patch: Partial<Pick<Space, 'name' | 'color'>>): void;
   updateSpaceSettings(id: string, patch: { sync?: SyncConfig | null; share?: Space['share'] }): void;
@@ -184,6 +185,11 @@ export const useStore = create<State>()((set, get) => {
     openCalendar() {
       set({ page: 'calendar', query: '' });
       void db.saveUi({ activeSpaceId: get().activeSpaceId, page: 'calendar' });
+    },
+
+    openSettings() {
+      set({ page: 'settings', query: '' });
+      void db.saveUi({ activeSpaceId: get().activeSpaceId, page: 'settings' });
     },
 
     addSpace(name, color) {
