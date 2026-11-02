@@ -441,3 +441,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .switch-line input[role='switch']:checked { background: var(--accent); }
 .switch-line input[role='switch']:checked::before { transform: translateX(16px); }
 .switch-line input[role='switch']:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.settings-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin-bottom: 16px; max-width: 760px; flex: none; }
+.settings-tabs button { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 8px 12px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; font: inherit; border-radius: 6px 6px 0 0; }
+.settings-tabs button:hover { color: var(--text); background: var(--card); }
+.settings-tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }

@@ -12,8 +12,25 @@ import { Icon } from './icons';
 const ALL_SITES = ['https://*/*', 'http://*/*'];
 const isEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
 
-/** One place for your profile, general options, accounts, backup, and who made TabNest. */
+const TABS = [
+  { id: 'general', label: 'General', icon: 'settings' },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' },
+  { id: 'git', label: 'Git sync', icon: 'git' },
+  { id: 'backup', label: 'Backup & restore', icon: 'download' },
+  { id: 'about', label: 'About TabNest', icon: 'note' },
+] as const;
+type Tab = (typeof TABS)[number]['id'];
+
+/** Tab shown when Settings is opened again while TabNest stays open. */
+let lastTab: Tab = 'general';
+
+/** One place for your profile, general options, calendar, Git, backup, and who made TabNest, in tabs. */
 export function SettingsPage({ onRemotes }: { onRemotes: () => void }) {
+  const [tab, setTab] = useState<Tab>(lastTab);
+  const pick = (t: Tab) => {
+    lastTab = t;
+    setTab(t);
+  };
   return (
     <main className="space-view settings-page">
       <header className="space-head">
@@ -22,13 +39,24 @@ export function SettingsPage({ onRemotes }: { onRemotes: () => void }) {
         </span>
         <span className="space-name">Settings</span>
       </header>
-      <div className="settings">
-        <ProfileSection />
-        <GeneralSection />
-        <CalendarSection />
-        <AccountsSection onRemotes={onRemotes} />
-        <BackupSection />
-        <AboutSection />
+      <div className="settings-tabs" role="tablist">
+        {TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} onClick={() => pick(t.id)}>
+            <Icon name={t.icon} size={14} /> {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="settings" role="tabpanel">
+        {tab === 'general' && (
+          <>
+            <ProfileSection />
+            <GeneralSection />
+          </>
+        )}
+        {tab === 'calendar' && <CalendarSection />}
+        {tab === 'git' && <AccountsSection onRemotes={onRemotes} />}
+        {tab === 'backup' && <BackupSection />}
+        {tab === 'about' && <AboutSection />}
       </div>
     </main>
   );
