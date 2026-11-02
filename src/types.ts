@@ -121,6 +121,8 @@ export interface Prefs {
   leftCollapsed?: boolean;
   /** Right "Open Tabs" panel hidden to a thin strip. */
   rightCollapsed?: boolean;
+  /** Calendar page and its sidebar entry; switched on unless set to false. */
+  calendarEnabled?: boolean;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */

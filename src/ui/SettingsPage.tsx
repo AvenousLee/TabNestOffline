@@ -25,6 +25,7 @@ export function SettingsPage({ onRemotes }: { onRemotes: () => void }) {
       <div className="settings">
         <ProfileSection />
         <GeneralSection />
+        <CalendarSection />
         <AccountsSection onRemotes={onRemotes} />
         <BackupSection />
         <AboutSection />
@@ -100,17 +101,8 @@ function GeneralSection() {
 
 function AccountsSection({ onRemotes }: { onRemotes: () => void }) {
   const s = useStore();
-  const cal = useCalendar();
-  const [clientId, setClientId] = useState('');
-  useEffect(() => {
-    void cal.load().then(() => setClientId(useCalendar.getState().clientId));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const idChanged = clientId.trim() !== cal.clientId;
-
   return (
-    <Section title="Accounts & connections">
-      <h3>Git repositories</h3>
+    <Section title="Git sync" hint="Spaces can sync through your own GitHub, Forgejo or GitLab repositories.">
       {s.remotes.length ? (
         <ul className="settings-list">
           {s.remotes.map((r) => (
@@ -124,53 +116,93 @@ function AccountsSection({ onRemotes }: { onRemotes: () => void }) {
           ))}
         </ul>
       ) : (
-        <p className="muted small">None yet. Spaces can sync through your own GitHub, Forgejo or GitLab repositories.</p>
+        <p className="muted small">No repositories yet.</p>
       )}
       <button className="btn" onClick={onRemotes}>
         <Icon name="git" /> Manage Git repositories
       </button>
+    </Section>
+  );
+}
 
-      <h3>Google calendars</h3>
-      {cal.accounts.length ? (
-        <ul className="settings-list">
-          {cal.accounts.map((a) => (
-            <li key={a.email}>
-              <Icon name="calendar" size={14} /> <b>{a.email}</b>
-              <span className="muted small">
-                {cal.sources.filter((x) => x.account === a.email).length} calendars shown
-                {a.needsSignIn ? ' · signed out' : ''}
-              </span>
-              <button
-                className="link-btn danger small"
-                onClick={() => confirm(`Remove ${a.email} and its calendars from TabNest? (Nothing is deleted in Google.)`) && cal.removeAccount(a.email)}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted small">No Google account yet. Add one on the Calendar page (“My calendars” → +).</p>
-      )}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          cal.setClientId(clientId);
-          s.showToast('Google client ID saved.');
-        }}
-      >
-        <Field label="Google client ID" hint="From Google Cloud; used to sign in to all your Google accounts.">
-          <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="….apps.googleusercontent.com" spellCheck={false} />
-        </Field>
-        <div className="row-actions">
-          <button className="btn" disabled={!idChanged}>
-            Save client ID
-          </button>
-          <button type="button" className="btn" onClick={() => s.openCalendar()}>
+/** Calendar: switch it on or off, and its accounts and links. */
+function CalendarSection() {
+  const s = useStore();
+  const cal = useCalendar();
+  const on = s.prefs.calendarEnabled !== false;
+  const [clientId, setClientId] = useState('');
+  useEffect(() => {
+    void cal.load().then(() => setClientId(useCalendar.getState().clientId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const idChanged = clientId.trim() !== cal.clientId;
+  const linked = cal.sources.filter((x) => x.kind !== 'google');
+
+  return (
+    <Section title="Calendar" hint="One page with your Google calendars, iCal links and webmail calendars.">
+      <label className="check switch-line">
+        <input type="checkbox" role="switch" checked={on} onChange={(e) => s.savePrefs({ ...s.prefs, calendarEnabled: e.target.checked })} />
+        <b>Use the Calendar</b>
+        <span className="muted small">{on ? 'Shown in the sidebar.' : 'Hidden. Your calendars and accounts are kept for when you switch it back on.'}</span>
+      </label>
+
+      {on && (
+        <>
+          <h3>Google accounts</h3>
+          {cal.accounts.length ? (
+            <ul className="settings-list">
+              {cal.accounts.map((a) => (
+                <li key={a.email}>
+                  <Icon name="calendar" size={14} /> <b>{a.email}</b>
+                  <span className="muted small">
+                    {cal.sources.filter((x) => x.account === a.email).length} calendars shown
+                    {a.needsSignIn ? ' · signed out' : ''}
+                  </span>
+                  <button
+                    className="link-btn danger small"
+                    onClick={() => confirm(`Remove ${a.email} and its calendars from TabNest? (Nothing is deleted in Google.)`) && cal.removeAccount(a.email)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small">No Google account yet. Add one on the Calendar page (“My calendars” → +).</p>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              cal.setClientId(clientId);
+              s.showToast('Google client ID saved.');
+            }}
+          >
+            <Field label="Google client ID" hint="From Google Cloud; used to sign in to all your Google accounts.">
+              <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="….apps.googleusercontent.com" spellCheck={false} />
+            </Field>
+            <button className="btn" disabled={!idChanged}>
+              Save client ID
+            </button>
+          </form>
+
+          <h3>Other calendars</h3>
+          {linked.length ? (
+            <ul className="settings-list">
+              {linked.map((x) => (
+                <li key={x.id}>
+                  <span className="cal-swatch" style={{ background: x.color }} /> <b>{x.name}</b>
+                  <span className="muted small">{x.kind === 'caldav' ? `webmail · ${x.username}` : 'iCal link'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small">None yet. Add iCal links and webmail calendars on the Calendar page (“Other calendars” → +).</p>
+          )}
+          <button className="btn" onClick={() => s.openCalendar()}>
             <Icon name="calendar" /> Open Calendar
           </button>
-        </div>
-      </form>
+        </>
+      )}
     </Section>
   );
 }
@@ -204,9 +236,9 @@ function BackupSection() {
     <Section title="Backup & restore" hint="All your spaces and settings in one file: keep it safe, or use it to move TabNest to another PC or to a new copy of TabNest.">
       <label className="check">
         <input type="checkbox" checked={withSecrets} onChange={(e) => setWithSecrets(e.target.checked)} />
-        Include secrets: Git tokens and iCal calendar links <span className="muted small">(anyone with the file could use them)</span>
+        Include secrets: Git tokens, webmail calendar passwords and iCal links <span className="muted small">(anyone with the file could use them)</span>
       </label>
-      {!withSecrets && <p className="muted small">Without secrets you enter the Git tokens again after restoring, and iCal calendars are left out.</p>}
+      {!withSecrets && <p className="muted small">Without secrets you enter Git tokens and webmail passwords again after restoring, and iCal calendars are left out.</p>}
       <div className="row-actions">
         <button className="btn primary" onClick={() => void download()}>
           <Icon name="download" /> Download backup

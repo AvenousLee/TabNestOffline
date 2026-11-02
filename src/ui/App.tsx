@@ -33,7 +33,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    document.title = s.page === 'calendar' ? 'Calendar · TabNest' : s.page === 'settings' ? 'Settings · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
+    document.title = s.page === 'calendar' && s.prefs.calendarEnabled !== false ? 'Calendar · TabNest' : s.page === 'settings' ? 'Settings · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
   }, [space, s.page]);
 
   const leftCollapsed = !!s.prefs.leftCollapsed;
@@ -67,7 +67,7 @@ export function App() {
         onToggle={toggleLeft}
       />
       <div className="content">
-        {s.page === 'calendar' && !s.query.trim() ? (
+        {s.page === 'calendar' && s.prefs.calendarEnabled !== false && !s.query.trim() ? (
           <Suspense fallback={<main className="space-view"><p className="empty">Loading calendar…</p></main>}>
             <CalendarPage />
           </Suspense>

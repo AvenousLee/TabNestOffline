@@ -75,13 +75,15 @@ export function Sidebar({
       </label>
 
       {/* One Calendar page for all linked calendars (spaces stay for tabs). */}
-      <button className={`space-item cal-entry${s.page === 'calendar' && !s.query ? ' active' : ''}`} onClick={() => s.openCalendar()} title={collapsed ? 'Calendar' : undefined}>
-        <span className="cal-entry-icon">
-          <Icon name="calendar" size={16} />
-          <b>{new Date().getDate()}</b>
-        </span>
-        <span className="space-label">Calendar</span>
-      </button>
+      {s.prefs.calendarEnabled !== false && (
+        <button className={`space-item cal-entry${s.page === 'calendar' && !s.query ? ' active' : ''}`} onClick={() => s.openCalendar()} title={collapsed ? 'Calendar' : undefined}>
+          <span className="cal-entry-icon">
+            <Icon name="calendar" size={16} />
+            <b>{new Date().getDate()}</b>
+          </span>
+          <span className="space-label">Calendar</span>
+        </button>
+      )}
 
       <div className="side-section">
         <span className="label">Spaces</span>

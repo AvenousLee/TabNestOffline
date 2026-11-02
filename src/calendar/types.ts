@@ -8,16 +8,19 @@ export type CalendarView = 'year' | 'month' | 'week' | 'agenda';
 /** A calendar shown on the Calendar page. */
 export interface CalendarSource {
   id: string;
-  /** "My calendars" (from a signed-in Google account) or "Other calendars" (iCal links). */
+  /** "My calendars" (from a signed-in Google account) or "Other calendars" (iCal links, webmail calendars). */
   group: 'mine' | 'other';
   /** Shown in the list; defaults to the calendar's own name. */
   name: string;
   color: string;
   /** Hidden calendars stay linked but their events aren't shown. */
   enabled: boolean;
-  kind: 'ical' | 'google';
-  /** iCal address (webcal:// is turned into https://). Empty for Google calendars. */
+  kind: 'ical' | 'google' | 'caldav';
+  /** iCal address (webcal:// is turned into https://), or the webmail calendar's CalDAV address. Empty for Google calendars. */
   url: string;
+  /** Webmail (CalDAV) login, kept on this device only like Git tokens. */
+  username?: string;
+  password?: string;
   /** Google: the account's email and the calendar's id in it. */
   account?: string;
   calendarId?: string;

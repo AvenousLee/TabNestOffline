@@ -3,8 +3,8 @@
 //
 // Downloaded copies that TabNest fetches again by itself (calendar caches,
 // short-lived Google sign-in tokens) are left out. Secrets are left out
-// unless the user asks for them: git tokens, and iCal links (a "secret
-// address" works like a password).
+// unless the user asks for them: git tokens, webmail calendar passwords, and
+// iCal links (a "secret address" works like a password).
 
 import type { Remote } from '../types';
 import type { CalendarSource } from '../calendar/types';
@@ -24,7 +24,10 @@ export function makeBackup(all: Record<string, unknown>, withSecrets: boolean, n
   for (const [k, v] of Object.entries(all)) if (!SKIP.some((re) => re.test(k))) data[k] = v;
   if (!withSecrets) {
     if (Array.isArray(data.remotes)) data.remotes = (data.remotes as Remote[]).map((r) => ({ ...r, token: '' }));
-    if (Array.isArray(data.calsources)) data.calsources = (data.calsources as CalendarSource[]).filter((s) => s.kind === 'google');
+    if (Array.isArray(data.calsources))
+      data.calsources = (data.calsources as CalendarSource[])
+        .filter((s) => s.kind === 'google' || s.kind === 'caldav')
+        .map((s) => (s.kind === 'caldav' ? { ...s, password: '' } : s));
   }
   return { format: 'tabnest.backup', version: 1, exportedAt: now.toISOString(), withSecrets, data };
 }

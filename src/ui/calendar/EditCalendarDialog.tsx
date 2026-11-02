@@ -6,23 +6,27 @@ import { requestHostAccess } from '../../browser/tabs';
 import { Field, Modal } from '../Modal';
 import { Icon } from '../icons';
 
-/** Change a calendar's name, colour and (for iCal links) address, or delete the link. */
+/** Change a calendar's name, colour and (for iCal links and webmail calendars) address and login, or delete the link. */
 export function EditCalendarDialog({ source, onClose }: { source: CalendarSource; onClose: () => void }) {
   const cal = useCalendar();
   const [name, setName] = useState(source.name);
   const [color, setColor] = useState(source.color);
   const [url, setUrl] = useState(source.url);
+  const [username, setUsername] = useState(source.username ?? '');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const isIcal = source.kind !== 'google';
+  const isCaldav = source.kind === 'caldav';
   const colors = CAL_COLORS.includes(source.color) ? CAL_COLORS : [source.color, ...CAL_COLORS];
 
   let validUrl = !isIcal;
   try {
-    validUrl ||= /^https?:$/.test(new URL(normalizeIcalUrl(url)).protocol);
+    validUrl ||= /^https?:$/.test(new URL(isCaldav ? url.trim() : normalizeIcalUrl(url)).protocol);
   } catch {
     validUrl = false;
   }
+  if (isCaldav && !username.trim()) validUrl = false;
 
   // Runs from a click: a new address on another website needs Chrome's permission first.
   const save = async () => {
@@ -30,7 +34,13 @@ export function EditCalendarDialog({ source, onClose }: { source: CalendarSource
     setError('');
     setBusy(true);
     try {
-      if (isIcal && normalizeIcalUrl(url) !== source.url) {
+      if (isCaldav) {
+        if (new URL(url.trim()).origin !== new URL(source.url).origin) {
+          const origin = new URL(url.trim()).origin;
+          if (!(await requestHostAccess(origin))) throw new Error(`TabNest needs permission to read ${new URL(origin).host}. Please click Allow.`);
+        }
+        await cal.changeCaldav(source.id, { url, username, password });
+      } else if (isIcal && normalizeIcalUrl(url) !== source.url) {
         const origin = new URL(normalizeIcalUrl(url)).origin;
         if (!(await requestHostAccess(origin))) throw new Error(`TabNest needs permission to read ${new URL(origin).host}. Please click Allow.`);
         await cal.changeIcalUrl(source.id, url);
@@ -79,7 +89,22 @@ export function EditCalendarDialog({ source, onClose }: { source: CalendarSource
         <Field label="Name" hint={isIcal ? 'Only changes the name shown in TabNest.' : `From ${source.account}. Only changes the name shown in TabNest.`}>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        {isIcal && (
+        {isCaldav && (
+          <>
+            <Field label="Calendar address (CalDAV)" hint="A changed address or login is checked before it is saved.">
+              <input value={url} onChange={(e) => setUrl(e.target.value)} spellCheck={false} />
+            </Field>
+            <div className="row">
+              <Field label="Username">
+                <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" spellCheck={false} />
+              </Field>
+              <Field label="Password" hint="Leave empty to keep the saved one (e.g. type the new one after changing your email password).">
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="••••••••" />
+              </Field>
+            </div>
+          </>
+        )}
+        {isIcal && !isCaldav && (
           <Field label="iCal address (.ics)" hint="Paste a new address, e.g. after the secret address was reset. It is checked before it is saved.">
             <input value={url} onChange={(e) => setUrl(e.target.value)} spellCheck={false} />
           </Field>

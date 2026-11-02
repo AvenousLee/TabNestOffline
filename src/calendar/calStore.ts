@@ -1,6 +1,6 @@
 // Linked calendars and their downloaded data. Kept on this device only:
 //   calsources        CalendarSource[]               every calendar on the Calendar page
-//   calcache:<id>     { fetchedAt, text }            last downloaded .ics for one iCal calendar
+//   calcache:<id>     { fetchedAt, text }            last downloaded .ics for one iCal or webmail calendar
 //   calaccounts       GoogleAccount[]                signed-in Google accounts
 //   calgoogle         { clientId }                   the Google Cloud OAuth client to sign in with
 //   calgtoken:<email> GoogleToken                    short-lived access token (about 1 hour)
@@ -11,6 +11,7 @@ import type { CalendarSource, CalendarView, CalEvent, GoogleAccount } from './ty
 import { loadKey, removeKeys, saveKey } from '../storage/storage';
 import { newId, nowIso } from '../lib/util';
 import { normalizeIcalUrl, occurrences, parseIcs, type ParsedCalendar } from './ics';
+import { downloadCaldav, normalizeCaldavUrl, type CaldavLogin } from './caldav';
 import {
   deleteEvent,
   googleSignIn,
@@ -58,6 +59,10 @@ interface CalState {
   updateSource(id: string, patch: Partial<Pick<CalendarSource, 'name' | 'color' | 'enabled'>>): void;
   /** Point an iCal calendar at a new address. Downloads it first, so a wrong link is reported and nothing changes. */
   changeIcalUrl(id: string, url: string): Promise<void>;
+  /** Link a webmail calendar (CalDAV). Downloads it first, so a wrong address or login is reported before saving. */
+  addCaldav(login: CaldavLogin, name?: string): Promise<CalendarSource>;
+  /** Change a webmail calendar's address or login (an empty password keeps the saved one). Checked before saving. */
+  changeCaldav(id: string, login: CaldavLogin): Promise<void>;
   removeSource(id: string): void;
   refresh(id: string, force?: boolean): Promise<void>;
   refreshAll(force?: boolean): Promise<void>;
@@ -292,6 +297,44 @@ export const useCalendar = create<CalState>()((set, get) => {
       patchSource(id, { url, lastFetchedAt: fetchedAt, lastError: undefined });
     },
 
+    async addCaldav(login, name) {
+      const url = normalizeCaldavUrl(login.url);
+      const label = name?.trim() || `Webmail – ${login.username}`;
+      const text = await downloadCaldav({ ...login, url }, label);
+      const cal = parseIcs(text);
+      const used = new Set(get().sources.map((s) => s.color));
+      const source: CalendarSource = {
+        id: newId(),
+        group: 'other',
+        kind: 'caldav',
+        name: label,
+        color: CAL_COLORS.find((c) => !used.has(c)) ?? CAL_COLORS[0],
+        enabled: true,
+        url,
+        username: login.username.trim(),
+        password: login.password,
+        lastFetchedAt: nowIso(),
+      };
+      void saveKey(`calcache:${source.id}`, { fetchedAt: source.lastFetchedAt!, text } satisfies Cache);
+      const sources = [...get().sources, source];
+      set((st) => ({ sources, parsed: { ...st.parsed, [source.id]: cal } }));
+      persistSources(sources);
+      return source;
+    },
+
+    async changeCaldav(id, login) {
+      const old = get().sources.find((s) => s.id === id);
+      if (!old) return;
+      const next = { url: normalizeCaldavUrl(login.url), username: login.username.trim(), password: login.password || old.password || '' };
+      if (next.url === old.url && next.username === old.username && next.password === old.password) return;
+      const text = await downloadCaldav(next, old.name);
+      const cal = parseIcs(text);
+      const fetchedAt = nowIso();
+      void saveKey(`calcache:${id}`, { fetchedAt, text } satisfies Cache);
+      set((st) => ({ parsed: { ...st.parsed, [id]: cal } }));
+      patchSource(id, { ...next, lastFetchedAt: fetchedAt, lastError: undefined });
+    },
+
     removeSource(id) {
       const sources = get().sources.filter((s) => s.id !== id);
       set((st) => {
@@ -316,7 +359,7 @@ export const useCalendar = create<CalState>()((set, get) => {
       if (!force && age < REFRESH_MS && get().parsed[id]) return;
       setBusy(id, true);
       try {
-        const text = await download(s.url);
+        const text = s.kind === 'caldav' ? await downloadCaldav({ url: s.url, username: s.username ?? '', password: s.password ?? '' }, s.name) : await download(s.url);
         const cal = parseIcs(text);
         const fetchedAt = nowIso();
         void saveKey(`calcache:${id}`, { fetchedAt, text } satisfies Cache);

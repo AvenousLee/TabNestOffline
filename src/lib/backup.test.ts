@@ -11,6 +11,7 @@ const all = {
   calsources: [
     { id: 'i', kind: 'ical', url: 'https://cal.test/private-SECRET/basic.ics' },
     { id: 'g', kind: 'google', account: 'me@x.test', calendarId: 'me@x.test' },
+    { id: 'w', kind: 'caldav', url: 'https://mail.x.test:2080/calendars/me@x.test/calendar/', username: 'me@x.test', password: 'MAIL-SECRET' },
   ],
   calaccounts: [{ email: 'me@x.test' }],
   'calcache:i': { text: 'BEGIN:VCALENDAR' },
@@ -28,14 +29,15 @@ describe('backup', () => {
     expect(Object.keys(b.data)).not.toContain('lastWrite');
     expect(b.data['space:a']).toEqual({ id: 'a', name: 'Work' });
     expect(b.data.remotes).toEqual([{ id: 'r', label: 'Work', kind: 'forgejo', token: '' }]);
-    expect(b.data.calsources).toEqual([all.calsources[1]]);
-    expect(describeBackup(b)).toBe('2 spaces, 1 git repository, 1 calendar');
+    expect(b.data.calsources).toEqual([all.calsources[1], { ...all.calsources[2], password: '' }]);
+    expect(describeBackup(b)).toBe('2 spaces, 1 git repository, 2 calendars');
   });
 
   it('keeps tokens and iCal links when asked, but never Google sign-in tokens', () => {
     const text = JSON.stringify(makeBackup(all, true));
     expect(text).toContain('SECRET-TOKEN');
     expect(text).toContain('private-SECRET');
+    expect(text).toContain('MAIL-SECRET');
     expect(text).not.toContain('ya29.SECRET');
   });
 

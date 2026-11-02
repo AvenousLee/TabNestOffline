@@ -434,3 +434,10 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .about-author { font-size: 17px; }
 .about-placeholder { color: var(--muted); font-style: italic; }
 .about-credit a { color: var(--accent-hover); }
+/* On/off switch (a checkbox with role="switch"). */
+.switch-line { gap: 10px; flex-wrap: wrap; }
+.switch-line input[role='switch'] { appearance: none; -webkit-appearance: none; width: 36px; height: 20px; margin: 0; border-radius: 10px; background: var(--line); position: relative; cursor: pointer; flex: none; transition: background 0.15s; }
+.switch-line input[role='switch']::before { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
+.switch-line input[role='switch']:checked { background: var(--accent); }
+.switch-line input[role='switch']:checked::before { transform: translateX(16px); }
+.switch-line input[role='switch']:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
