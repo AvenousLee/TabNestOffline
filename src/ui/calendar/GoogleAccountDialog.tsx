@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCalendar } from '../../calendar/calStore';
-import { canUseGoogle, redirectUri, type GoogleCalendarEntry } from '../../calendar/google';
+import { canUseGoogle, type GoogleCalendarEntry } from '../../calendar/google';
+import { GoogleSetupSteps, GoogleWhy } from './GoogleSetupGuide';
 import { Field, Modal } from '../Modal';
 
 /** Sign in to a Google account (one more each time), after a one-time Google Cloud setup. */
@@ -10,8 +11,6 @@ export function GoogleAccountDialog({ onSignedIn, onClose }: { onSignedIn: (emai
   const [help, setHelp] = useState(!cal.clientId);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const redirect = redirectUri();
   const valid = /\.apps\.googleusercontent\.com$/.test(clientId.trim());
 
   const signIn = async () => {
@@ -60,46 +59,10 @@ export function GoogleAccountDialog({ onSignedIn, onClose }: { onSignedIn: (emai
       {error && <div className="status-line err">{error}</div>}
 
       {help && (
-        <div className="cal-help">
-          <p>One-time setup in Google Cloud (free), with any Google account:</p>
-          <ol>
-            <li>
-              Open{' '}
-              <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noreferrer">
-                console.cloud.google.com
-              </a>{' '}
-              and create a project, e.g. “TabNest”.
-            </li>
-            <li>
-              <i>APIs &amp; Services → Library</i>: search <b>Google Calendar API</b> and click <b>Enable</b>.
-            </li>
-            <li>
-              <i>Google Auth Platform → Branding</i> (or <i>OAuth consent screen</i>): app name “TabNest”, your email. Audience: <b>External</b>, leave it in <b>Testing</b> and add
-              every Google account you will sign in with under <b>Test users</b>.
-            </li>
-            <li>
-              <i>Clients → Create client</i>: type <b>Web application</b>. Under <b>Authorised redirect URIs</b> add:
-              <br />
-              <code className="cal-redirect">{redirect || 'https://<extension id>.chromiumapp.org/ (shown in the installed extension)'}</code>{' '}
-              {redirect && (
-                <button
-                  className="link-btn"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(redirect);
-                    setCopied(true);
-                  }}
-                >
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              )}
-            </li>
-            <li>Create, then copy the <b>Client ID</b> into the box above.</li>
-          </ol>
-          <p className="muted small">
-            The redirect address belongs to this copy of TabNest. A copy loaded from another folder (or from a store) has a different one: add that too. Company Google Workspace
-            accounts may need the IT admin to allow the app.
-          </p>
-        </div>
+        <>
+          <GoogleWhy />
+          <GoogleSetupSteps last="Create, then copy the Client ID into the box above." />
+        </>
       )}
     </Modal>
   );

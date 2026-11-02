@@ -40,9 +40,36 @@ You should see TabNest with a **Personal** space and a "Getting started" collect
 3. Tick/untick a calendar to show/hide it; **⋯** next to it to change colour, rename, refresh, replace the link or remove it.
 4. Switch between **Year / Month / Week / Agenda**; click an event for details and links.
 
-Linked calendars are **view only** for now (create and cancel events in Google/Outlook; they appear within ~15 minutes, or press ↻).
-**My calendars** will hold your own Google calendars once *Sign in with Google* is added.
+Linked calendars are **view only** (create and cancel events in Google/Outlook/webmail; they appear within ~15 minutes, or press ↻).
 Calendar links stay **on this device** (a secret address works like a password), so link them again on another computer.
+
+**Webmail calendars** (e.g. cPanel webmail): next to **Other calendars** click **+** → **Webmail calendar**, paste the CalDAV address
+(cPanel: `https://mail.yourcompany.com:2080/calendars/you@yourcompany.com/calendar`), your full email address and its password.
+
+The whole Calendar can be switched off in **Settings → Calendar → Use the Calendar** (your calendars are kept).
+
+## Google sign-in (optional)
+
+To **add, change and delete** events in your own Google calendars, turn on **Settings → Calendar → Sign in with Google accounts**.
+To only *see* a Google calendar you don't need this: link its secret iCal address (above).
+
+**Why you need your own Google client ID:** TabNest is a free, open-source app with no server or company behind it. Google only lets an
+app sign in to Google Calendar with a "client ID" registered to a person, who answers to Google for it (its limits, its review and its
+users). So TabNest doesn't ship one: you create your own, free, once, in about 10 minutes, and it stays under your control.
+
+One-time setup in Google Cloud (free, no credit card), with any Google account:
+
+1. Open [console.cloud.google.com](https://console.cloud.google.com/projectcreate) and create a project, e.g. "TabNest".
+2. *APIs & Services → Library*: search **Google Calendar API** and click **Enable**.
+3. *Google Auth Platform → Branding* (or *OAuth consent screen*): app name "TabNest", your email. Audience: **External**, leave it in
+   **Testing** and add every Google account you will sign in with under **Test users**.
+4. *Clients → Create client*: type **Web application**. Under **Authorised redirect URIs** add this copy's address, shown in TabNest
+   (Settings → Calendar → *Open the setup guide*). It looks like `https://<extension id>.chromiumapp.org/`.
+5. Create, then copy the **Client ID** into **Settings → Calendar → Google client ID**.
+6. On the Calendar page, click **+** next to **My calendars**, sign in, and tick the calendars to show. Repeat for each account.
+
+A copy of TabNest loaded from another folder (or from a store) has a different redirect address: add that one too.
+Company Google Workspace accounts may need the IT admin to allow the app.
 
 ## 3. Sync a space with Git
 

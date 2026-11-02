@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CalendarSource, CalendarView, CalEvent, GoogleAccount } from '../../calendar/types';
-import type { GoogleCalendarEntry } from '../../calendar/google';
+import { googleSignInOn, type GoogleCalendarEntry } from '../../calendar/google';
+import { useStore } from '../../store/store';
+import { settingsTab } from '../SettingsPage';
 import { CAL_COLORS, useCalendar } from '../../calendar/calStore';
 import { addDays, addMonths, coversDay, dayKey, fmt, monthGrid, sameDay, startOfDay, startOfWeek, weekStartDay } from '../../calendar/dates';
 import { agendaDays } from '../../calendar/agenda';
@@ -83,15 +85,21 @@ export function CalendarPage() {
   };
 
   const [from, to] = rangeOf(view, date);
-  const events = useMemo(() => cal.eventsFor(from, to), [cal.parsed, cal.gyears, cal.sources, from.getTime(), to.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Google sign-in switched off in Settings: its calendars stay saved but are not shown.
+  const prefs = useStore((st) => st.prefs);
+  const google = googleSignInOn(prefs.googleSignIn, cal.accounts.length);
+  const events = useMemo(
+    () => cal.eventsFor(from, to).filter((e) => google || sources.find((x) => x.id === e.sourceId)?.kind !== 'google'),
+    [cal.parsed, cal.gyears, cal.sources, google, from.getTime(), to.getTime()], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const lastFetch = sources.map((s) => s.lastFetchedAt).filter(Boolean).sort().pop();
-  const canCreate = sources.some((s) => s.kind === 'google' && s.canEdit);
+  const canCreate = google && sources.some((s) => s.kind === 'google' && s.canEdit);
   const googleKey = sources.filter((s) => s.kind === 'google' && s.enabled).map((s) => s.id).join() + cal.accounts.map((a) => a.email + a.needsSignIn).join();
 
   // Google events are downloaded per year, as the shown dates need them.
   useEffect(() => {
-    if (cal.loaded) void cal.ensureRange(from, to);
-  }, [cal.loaded, googleKey, from.getFullYear(), to.getFullYear()]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (cal.loaded && google) void cal.ensureRange(from, to);
+  }, [cal.loaded, google, googleKey, from.getFullYear(), to.getFullYear()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <main className="space-view calendar-page">
@@ -106,7 +114,7 @@ export function CalendarPage() {
       </header>
 
       <div className="cal-layout">
-        <CalendarList sources={sources} accounts={cal.accounts} onAdd={setAdding} onChoose={(email) => setChoosing({ email })} />
+        <CalendarList sources={sources} accounts={cal.accounts} google={google} onAdd={setAdding} onChoose={(email) => setChoosing({ email })} />
 
         <div className="cal">
           <div className="cal-toolbar">
@@ -187,11 +195,13 @@ function useMenu() {
 function CalendarList({
   sources,
   accounts,
+  google,
   onAdd,
   onChoose,
 }: {
   sources: CalendarSource[];
   accounts: GoogleAccount[];
+  google: boolean;
   onAdd: (kind: 'ical' | 'google') => void;
   onChoose: (email: string) => void;
 }) {
@@ -200,34 +210,38 @@ function CalendarList({
   const toggle = (k: 'mine' | 'other') => setOpen((o) => ({ ...o, [k]: !o[k] }));
   return (
     <aside className="cal-list">
-      <div className="cal-list-head">
-        <button className="cal-list-title" onClick={() => toggle('mine')}>
-          My calendars
-          <Icon name="chevron" size={14} className={open.mine ? 'flip' : ''} />
-        </button>
-        <button className="icon-btn" title="Add a Google account" onClick={() => onAdd('google')}>
-          <Icon name="plus" size={15} />
-        </button>
-      </div>
-      {open.mine &&
-        (accounts.length ? (
-          accounts.map((a) => (
-            <div key={a.email} className="cal-account">
-              <AccountRow a={a} onChoose={() => onChoose(a.email)} />
-              {sources.some((s) => s.account === a.email) ? (
-                sources.filter((s) => s.account === a.email).map((s) => <CalendarRow key={s.id} s={s} />)
-              ) : (
-                <button className="cal-list-note link-btn" onClick={() => onChoose(a.email)}>
-                  + Choose calendars to show
-                </button>
-              )}
-            </div>
-          ))
-        ) : (
-          <button className="cal-list-note link-btn" onClick={() => onAdd('google')}>
-            + Sign in with Google to add, change and delete events in your own calendars
-          </button>
-        ))}
+      {google && (
+        <>
+          <div className="cal-list-head">
+            <button className="cal-list-title" onClick={() => toggle('mine')}>
+              My calendars
+              <Icon name="chevron" size={14} className={open.mine ? 'flip' : ''} />
+            </button>
+            <button className="icon-btn" title="Add a Google account" onClick={() => onAdd('google')}>
+              <Icon name="plus" size={15} />
+            </button>
+          </div>
+          {open.mine &&
+            (accounts.length ? (
+              accounts.map((a) => (
+                <div key={a.email} className="cal-account">
+                  <AccountRow a={a} onChoose={() => onChoose(a.email)} />
+                  {sources.some((s) => s.account === a.email) ? (
+                    sources.filter((s) => s.account === a.email).map((s) => <CalendarRow key={s.id} s={s} />)
+                  ) : (
+                    <button className="cal-list-note link-btn" onClick={() => onChoose(a.email)}>
+                      + Choose calendars to show
+                    </button>
+                  )}
+                </div>
+              ))
+            ) : (
+              <button className="cal-list-note link-btn" onClick={() => onAdd('google')}>
+                + Sign in with Google to add, change and delete events in your own calendars
+              </button>
+            ))}
+        </>
+      )}
 
       <div className="cal-list-head">
         <button className="cal-list-title" onClick={() => toggle('other')}>
@@ -246,6 +260,11 @@ function CalendarList({
             + Link a calendar (Google, Outlook, holidays…)
           </button>
         ))}
+      {!google && (
+        <button className="cal-list-note link-btn cal-google-off" onClick={() => (settingsTab('calendar'), useStore.getState().openSettings())}>
+          To add and edit events in Google calendars, turn on Google sign-in in Settings → Calendar
+        </button>
+      )}
     </aside>
   );
 }

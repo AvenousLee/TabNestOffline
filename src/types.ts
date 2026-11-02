@@ -123,6 +123,8 @@ export interface Prefs {
   rightCollapsed?: boolean;
   /** Calendar page and its sidebar entry; switched on unless set to false. */
   calendarEnabled?: boolean;
+  /** Google sign-in on the Calendar page (own client ID). Unset: on when a Google account was already added. */
+  googleSignIn?: boolean;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */

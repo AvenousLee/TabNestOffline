@@ -445,3 +445,4 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .settings-tabs button { flex: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 8px 12px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; font: inherit; border-radius: 6px 6px 0 0; }
 .settings-tabs button:hover { color: var(--text); background: var(--card); }
 .settings-tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.cal-google-off { margin-top: 14px; }

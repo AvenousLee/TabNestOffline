@@ -25,6 +25,9 @@ export class NeedsSignIn extends Error {
   }
 }
 
+/** Google sign-in switched on in Settings (unset: on for people who already added a Google account). */
+export const googleSignInOn = (pref: boolean | undefined, accounts: number) => pref ?? accounts > 0;
+
 export const canUseGoogle = () => typeof chrome !== 'undefined' && !!chrome.identity?.launchWebAuthFlow;
 
 /** Address to add as an "Authorised redirect URI" in Google Cloud. */

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import { useCalendar } from '../calendar/calStore';
+import { googleSignInOn } from '../calendar/google';
+import { GoogleSetupGuideDialog, GoogleWhy } from './calendar/GoogleSetupGuide';
 import { requestHostAccess } from '../browser/tabs';
 import { loadEverything, replaceEverything } from '../storage/storage';
 import { backupFileName, describeBackup, makeBackup, readBackup } from '../lib/backup';
@@ -23,6 +25,11 @@ type Tab = (typeof TABS)[number]['id'];
 
 /** Tab shown when Settings is opened again while TabNest stays open. */
 let lastTab: Tab = 'general';
+
+/** Open Settings on a given tab (e.g. from the Calendar page). */
+export function settingsTab(tab: Tab): void {
+  lastTab = tab;
+}
 
 /** One place for your profile, general options, calendar, Git, backup, and who made TabNest, in tabs. */
 export function SettingsPage({ onRemotes }: { onRemotes: () => void }) {
@@ -165,6 +172,8 @@ function CalendarSection() {
   }, []);
   const idChanged = clientId.trim() !== cal.clientId;
   const linked = cal.sources.filter((x) => x.kind !== 'google');
+  const google = googleSignInOn(s.prefs.googleSignIn, cal.accounts.length);
+  const [guide, setGuide] = useState(false);
 
   return (
     <Section title="Calendar" hint="One page with your Google calendars, iCal links and webmail calendars.">
@@ -176,6 +185,24 @@ function CalendarSection() {
 
       {on && (
         <>
+          <label className="check switch-line">
+            <input type="checkbox" role="switch" checked={google} onChange={(e) => s.savePrefs({ ...s.prefs, googleSignIn: e.target.checked })} />
+            <b>Sign in with Google accounts</b>
+            <span className="muted small">
+              {google ? 'Add, change and delete events in your own Google calendars.' : cal.accounts.length ? `Off. Your ${cal.accounts.length} Google account(s) are kept but hidden.` : 'Off. You can still see Google calendars through their iCal address.'}
+            </span>
+          </label>
+        </>
+      )}
+
+      {on && google && (
+        <>
+          <GoogleWhy />
+          <button className="btn" onClick={() => setGuide(true)}>
+            <Icon name="note" /> Open the setup guide
+          </button>
+          {guide && <GoogleSetupGuideDialog onClose={() => setGuide(false)} />}
+
           <h3>Google accounts</h3>
           {cal.accounts.length ? (
             <ul className="settings-list">
@@ -212,7 +239,11 @@ function CalendarSection() {
               Save client ID
             </button>
           </form>
+        </>
+      )}
 
+      {on && (
+        <>
           <h3>Other calendars</h3>
           {linked.length ? (
             <ul className="settings-list">
