@@ -119,7 +119,7 @@ function GeneralSection() {
   const start = s.spaces.some((x) => x.id === s.prefs.startSpaceId) ? s.prefs.startSpaceId! : '';
   return (
     <Section title="General">
-      <Field label="New tabs open on" hint="The space shown each time you open a new tab.">
+      <Field label="Default space" hint="Opens in every new tab. You can also set it with ⋯ next to a space in the sidebar → Set as default space.">
         <select value={start} onChange={(e) => s.savePrefs({ ...s.prefs, startSpaceId: e.target.value || undefined })}>
           <option value="">The first space in the list{s.spaces[0] ? ` (now: ${s.spaces[0].name})` : ''}</option>
           {s.spaces.map((x) => (

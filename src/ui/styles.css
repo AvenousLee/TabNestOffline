@@ -452,3 +452,15 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .space-item.drop-before::before { top: -2px; }
 .space-item.drop-after::after { bottom: -2px; }
 .copy-cols-head { display: flex; align-items: center; justify-content: space-between; margin: 12px 0 4px; }
+/* ⋯ next to each space (set as default) and the default-space mark. */
+.space-row { position: relative; }
+.space-row .space-item { padding-right: 30px; }
+/* The button sits on the row's right; the menu opens under the whole row so it fits the sidebar. */
+.space-more > .icon-btn { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; opacity: 0.45; }
+.space-row:hover .space-more > .icon-btn, .space-more.open > .icon-btn, .space-more > .icon-btn:focus-visible { opacity: 1; }
+.space-menu { left: 4px; right: 4px; width: auto; }
+.space-menu > button { display: flex; align-items: center; gap: 8px; }
+.space-menu p { display: flex; align-items: center; gap: 6px; }
+.default-mark { color: var(--muted); display: inline-flex; flex: none; }
+.sidebar.collapsed .default-mark { display: none; }
+.sidebar.collapsed .space-row .space-item { padding-right: 0; }

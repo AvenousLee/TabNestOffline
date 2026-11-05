@@ -36,6 +36,9 @@ export function Sidebar({
     return () => window.removeEventListener('keydown', onKey);
   }, [collapsed, onToggle]);
 
+  // The space new tabs open on: the one chosen in Settings, else the first.
+  const defaultId = (s.spaces.find((x) => x.id === s.prefs.startSpaceId) ?? s.spaces[0])?.id;
+
   const onDrop = (e: React.DragEvent, spaceId: string, index: number) => {
     e.preventDefault();
     const after = over?.at === 'after';
@@ -113,39 +116,47 @@ export function Sidebar({
       <nav className="space-list">
         {s.spaces.map((space, i) => {
           const pending = s.pending.some((p) => p.spaceId === space.id);
+          const isDefault = space.id === defaultId;
           return (
-            <button
-              key={space.id}
-              className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over?.id === space.id ? (over.at === 'into' ? ' over' : ` drop-${over.at}`) : ''}`}
-              onClick={() => s.setActive(space.id)}
-              draggable
-              onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
-              onDragEnd={endDrag}
-              onDragOver={(e) => {
-                if (!acceptsDrop(e, ['space', 'card', 'tab', 'collection'])) return;
-                e.preventDefault();
-                if (draggingKind() === 'space') {
-                  // Upper half: drop above this space; lower half: below it.
-                  const r = e.currentTarget.getBoundingClientRect();
-                  e.dataTransfer.dropEffect = 'move';
-                  setOver({ id: space.id, at: e.clientY < r.top + r.height / 2 ? 'before' : 'after' });
-                } else setOver({ id: space.id, at: 'into' });
-              }}
-              onDragLeave={() => setOver(null)}
-              onDrop={(e) => onDrop(e, space.id, i)}
-              title={collapsed ? space.name : 'Drag to change the order'}
-            >
-              <span className="space-dot" style={{ background: space.color }}>
-                {space.name.charAt(0).toUpperCase()}
-              </span>
-              <span className="space-label">{space.name}</span>
-              {space.sync && (
-                <span className={`sync-mark${space.sync.lastError ? ' err' : ''}`} title={space.sync.lastError ?? 'Synced with git'}>
-                  <Icon name={space.sync.target.type === 'repo' ? 'git' : 'link'} size={12} />
+            <div key={space.id} className="space-row">
+              <button
+                className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over?.id === space.id ? (over.at === 'into' ? ' over' : ` drop-${over.at}`) : ''}`}
+                onClick={() => s.setActive(space.id)}
+                draggable
+                onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
+                onDragEnd={endDrag}
+                onDragOver={(e) => {
+                  if (!acceptsDrop(e, ['space', 'card', 'tab', 'collection'])) return;
+                  e.preventDefault();
+                  if (draggingKind() === 'space') {
+                    // Upper half: drop above this space; lower half: below it.
+                    const r = e.currentTarget.getBoundingClientRect();
+                    e.dataTransfer.dropEffect = 'move';
+                    setOver({ id: space.id, at: e.clientY < r.top + r.height / 2 ? 'before' : 'after' });
+                  } else setOver({ id: space.id, at: 'into' });
+                }}
+                onDragLeave={() => setOver(null)}
+                onDrop={(e) => onDrop(e, space.id, i)}
+                title={collapsed ? space.name : 'Drag to change the order'}
+              >
+                <span className="space-dot" style={{ background: space.color }}>
+                  {space.name.charAt(0).toUpperCase()}
                 </span>
-              )}
-              {pending && <span className="badge" title="Update waiting" />}
-            </button>
+                <span className="space-label">{space.name}</span>
+                {isDefault && (
+                  <span className="default-mark" title="Default space: opens in new tabs">
+                    <Icon name="home" size={12} />
+                  </span>
+                )}
+                {space.sync && (
+                  <span className={`sync-mark${space.sync.lastError ? ' err' : ''}`} title={space.sync.lastError ?? 'Synced with git'}>
+                    <Icon name={space.sync.target.type === 'repo' ? 'git' : 'link'} size={12} />
+                  </span>
+                )}
+                {pending && <span className="badge" title="Update waiting" />}
+              </button>
+              {!collapsed && <SpaceMenu spaceId={space.id} isDefault={isDefault} />}
+            </div>
           );
         })}
       </nav>
@@ -170,5 +181,46 @@ export function Sidebar({
         </button>
       </div>
     </aside>
+  );
+}
+
+/** ⋯ next to a space: make it the default space (the one new tabs open on). */
+function SpaceMenu({ spaceId, isDefault }: { spaceId: string; isDefault: boolean }) {
+  const s = useStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [open]);
+  const chosen = s.prefs.startSpaceId === spaceId;
+  const setDefault = (id: string | undefined) => {
+    s.savePrefs({ ...s.prefs, startSpaceId: id });
+    setOpen(false);
+    const name = (s.spaces.find((x) => x.id === id) ?? s.spaces[0])?.name;
+    s.showToast(`New tabs now open on ${name}.`);
+  };
+  return (
+    <div className={`space-more${open ? ' open' : ''}`} ref={ref}>
+      <button className="icon-btn" title="Space options" onClick={() => setOpen(!open)}>
+        <Icon name="more" size={14} />
+      </button>
+      {open && (
+        <div className="cal-menu space-menu">
+          {isDefault ? (
+            <p className="muted small">
+              <Icon name="home" size={12} /> Default space: opens in new tabs
+            </p>
+          ) : (
+            <button onClick={() => setDefault(spaceId)}>
+              <Icon name="home" size={14} /> Set as default space
+            </button>
+          )}
+          {chosen && <button onClick={() => setDefault(undefined)}>Use the first space instead</button>}
+        </div>
+      )}
+    </div>
   );
 }
