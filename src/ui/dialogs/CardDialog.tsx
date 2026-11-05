@@ -4,16 +4,16 @@ import { useStore } from '../../store/store';
 import { requestHostAccess } from '../../browser/tabs';
 import { isSafeImage } from '../../lib/spaceFile';
 import { dataUrlBytes, fetchPreviewImage, shrinkImage } from '../../lib/image';
-import { lockNote, rememberUnlocked, unlockedNote } from '../../lib/lock';
+import { isMasterPassword, lockNote } from '../../lib/lock';
 import { Field, Modal } from '../Modal';
 import { Icon } from '../icons';
 import type { CardTarget } from '../SpaceView';
 import { UnlockDialog } from '../UnlockDialog';
+import { MasterPasswordDialog } from '../MasterPasswordDialog';
 
 /** Spaces bigger than this sync noticeably slower; warn when pictures push past it. */
 const BIG_SPACE_BYTES = 3_000_000;
 const ALL_SITES = ['https://*', 'http://*'];
-const MIN_PASSWORD = 4;
 
 /** Who can read the description: everyone, after a click, or only with the password. */
 type Privacy = 'shown' | 'hidden' | 'locked';
@@ -23,18 +23,19 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const [title, setTitle] = useState(target.card?.title ?? '');
   const [url, setUrl] = useState(target.card?.url ?? '');
   const lock0 = target.card?.noteLock;
-  // A locked description needs its password to be read or changed (remembered if unlocked earlier in this tab).
-  const [opened, setOpened] = useState(() => (lock0 && target.card ? unlockedNote(target.card.id, lock0) : undefined));
+  // A locked description must be unlocked (password asked every time) to be read or changed.
+  const [opened, setOpened] = useState<{ text: string; byMaster: boolean; password: string }>();
   const [unlocking, setUnlocking] = useState(false);
-  const [note, setNote] = useState(lock0 ? (opened?.text ?? '') : (target.card?.note ?? ''));
+  const [settingMaster, setSettingMaster] = useState(false);
+  const [note, setNote] = useState(lock0 ? '' : (target.card?.note ?? ''));
   const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changePassword, setChangePassword] = useState(false);
+  const [master, setMaster] = useState('');
+  const [lockError, setLockError] = useState('');
   const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
-  // A password is needed when locking for the first time, or when asked to change it.
-  const askPassword = privacy === 'locked' && !sealed && (!lock0 || changePassword);
-  const passwordOk = !askPassword || (newPassword.length >= MIN_PASSWORD && newPassword === confirmPassword);
+  const hasMaster = !!s.prefs.masterCheck;
+  // Locking (again) uses the master password: asked here unless the card was just unlocked with it.
+  const askMaster = privacy === 'locked' && !sealed && !opened?.byMaster;
+  const passwordOk = privacy !== 'locked' || sealed || (hasMaster && (!askMaster || !!master));
   const [image, setImage] = useState(target.card?.image ?? '');
   // Pictures are optional: the section stays hidden until ticked (or the card already has one).
   const [withPicture, setWithPicture] = useState(!!target.card?.image);
@@ -115,10 +116,15 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
     if (privacy === 'locked') {
       if (sealed) noteLock = lock0; // unchanged
       else if (text) {
-        const password = askPassword ? newPassword : opened!.password;
+        const password = askMaster ? master : opened!.password;
+        setLockError('');
         setBusy('Locking the description…');
+        if (askMaster && !(await isMasterPassword(s.prefs.masterCheck, password))) {
+          setBusy('');
+          setLockError('That is not your master password.');
+          return;
+        }
         noteLock = await lockNote(text, password);
-        if (target.card) rememberUnlocked(target.card.id, noteLock, text, password);
       }
     }
     const data = {
@@ -198,39 +204,39 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
             {privacy === 'shown' && 'Shown on the card.'}
             {privacy === 'hidden' && 'Folded away on the card; one click shows it. Not secret: anyone with the space can still read it.'}
             {privacy === 'locked' &&
-              'Encrypted with a password: unreadable without it, also in synced and shared copies. Nobody can recover it if the password is forgotten.'}
+              'Encrypted with your master password: unreadable without it, also in synced and shared copies. It’s asked for every time the description is opened.'}
           </span>
         </div>
-        {askPassword && (
-          <div className="row">
-            <Field label={lock0 ? 'New password' : 'Password'} hint={`At least ${MIN_PASSWORD} characters.`}>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
-            </Field>
-            <Field label="Type it again" hint={confirmPassword && newPassword !== confirmPassword ? 'The passwords don’t match.' : undefined}>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
-            </Field>
+        {privacy === 'locked' && !sealed && !hasMaster && (
+          <div className="locked-box">
+            <Icon name="lock" /> <span>Set a master password first. It locks all the descriptions you mark as Password.</span>
+            <button type="button" className="btn primary" onClick={() => setSettingMaster(true)}>
+              Set master password…
+            </button>
           </div>
         )}
-        {privacy === 'locked' && !!lock0 && !sealed && !changePassword && (
-          <button type="button" className="link-btn" onClick={() => setChangePassword(true)}>
-            Change the password
-          </button>
+        {askMaster && hasMaster && (
+          <Field label="Master password" hint="Needed to lock the description (Settings → General → Master password).">
+            <input type="password" value={master} onChange={(e) => (setMaster(e.target.value), setLockError(''))} autoComplete="current-password" />
+          </Field>
         )}
+        {lockError && <div className="status-line err">{lockError}</div>}
         <button type="submit" hidden />
       </form>
       {unlocking && target.card && lock0 && (
         <UnlockDialog
-          cardId={target.card.id}
           title={target.card.title}
           lock={lock0}
           onUnlocked={(text, password) => {
-            setOpened({ text, password });
+            // Opened with the master password: saving can lock it again without asking twice.
+            void isMasterPassword(s.prefs.masterCheck, password).then((byMaster) => setOpened({ text, password, byMaster }));
             setNote(text);
             setUnlocking(false);
           }}
           onClose={() => setUnlocking(false)}
         />
       )}
+      {settingMaster && <MasterPasswordDialog mode="set" onClose={() => setSettingMaster(false)} />}
 
       <label className="check">
         <input type="checkbox" checked={withPicture} onChange={(e) => setWithPicture(e.target.checked)} />

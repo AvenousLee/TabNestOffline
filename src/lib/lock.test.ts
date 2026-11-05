@@ -22,3 +22,14 @@ describe('password-protected descriptions', () => {
     await expect(unlockNote('hello', 'pw')).rejects.toThrow(/damaged/);
   });
 });
+
+describe('master password', () => {
+  it('recognises the master password from its check value, without storing it', async () => {
+    const { makeMasterCheck, isMasterPassword } = await import('./lock');
+    const check = await makeMasterCheck('master-pass');
+    expect(check).not.toContain('master-pass');
+    expect(await isMasterPassword(check, 'master-pass')).toBe(true);
+    expect(await isMasterPassword(check, 'other')).toBe(false);
+    expect(await isMasterPassword(undefined, 'master-pass')).toBe(false);
+  });
+});

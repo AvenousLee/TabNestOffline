@@ -1,17 +1,15 @@
 import { useState } from 'react';
-import { rememberUnlocked, unlockNote } from '../lib/lock';
+import { unlockNote } from '../lib/lock';
 import { Field, Modal } from './Modal';
 import { Icon } from './icons';
 
-/** Ask for the password of a locked card description. It stays unlocked in this tab until the tab is closed. */
+/** Ask for the password of a locked card description (every time; nothing is remembered). */
 export function UnlockDialog({
-  cardId,
   title,
   lock,
   onUnlocked,
   onClose,
 }: {
-  cardId: string;
   title: string;
   lock: string;
   onUnlocked: (text: string, password: string) => void;
@@ -26,9 +24,7 @@ export function UnlockDialog({
     setBusy(true);
     setError('');
     try {
-      const text = await unlockNote(lock, password);
-      rememberUnlocked(cardId, lock, text, password);
-      onUnlocked(text, password);
+      onUnlocked(await unlockNote(lock, password), password);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -60,7 +56,7 @@ export function UnlockDialog({
         <p className="muted small" style={{ marginTop: 0 }}>
           The description of <b>{title}</b> is protected with a password.
         </p>
-        <Field label="Password">
+        <Field label="Password" hint="Your master password (or the card’s own password, for descriptions locked before the master password was set).">
           <input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
         </Field>
         <button type="submit" hidden />

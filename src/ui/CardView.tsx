@@ -4,7 +4,6 @@ import type { Card } from '../types';
 import { faviconFor } from '../browser/tabs';
 import { hostOf } from '../lib/util';
 import { endDrag, startDrag } from './dnd';
-import { unlockedNote } from '../lib/lock';
 import { Icon } from './icons';
 import { UnlockDialog } from './UnlockDialog';
 
@@ -32,8 +31,9 @@ const stop = (e: React.SyntheticEvent) => {
 function CardNote({ card }: { card: Card }) {
   const [show, setShow] = useState(false);
   const [asking, setAsking] = useState(false);
-  const opened = card.noteLock ? unlockedNote(card.id, card.noteLock) : undefined;
-  const text = card.noteLock ? opened?.text : card.note;
+  // A locked description is asked for every time: its text is kept only while it is open.
+  const [unlocked, setUnlocked] = useState<string>();
+  const text = card.noteLock ? unlocked : card.note;
   const privateNote = !!card.noteLock || !!card.noteHidden;
 
   if (privateNote && !(show && text)) {
@@ -46,20 +46,20 @@ function CardNote({ card }: { card: Card }) {
           title={locked ? 'Protected with a password' : 'Hidden description'}
           onClick={(e) => {
             stop(e);
-            if (locked && !opened) setAsking(true);
+            if (locked) setAsking(true);
             else setShow(true);
           }}
         >
-          <Icon name={locked ? 'lock' : 'eyeOff'} size={13} /> {locked ? (opened ? 'Show description' : 'Locked description · unlock') : 'Hidden description · show'}
+          <Icon name={locked ? 'lock' : 'eyeOff'} size={13} /> {locked ? 'Locked description · unlock' : 'Hidden description · show'}
         </button>
         {asking &&
           card.noteLock &&
           createPortal(
             <UnlockDialog
-              cardId={card.id}
               title={card.title}
               lock={card.noteLock}
-              onUnlocked={() => {
+              onUnlocked={(t) => {
+                setUnlocked(t);
                 setAsking(false);
                 setShow(true);
               }}
@@ -78,13 +78,14 @@ function CardNote({ card }: { card: Card }) {
         <button
           type="button"
           className="card-note-hide"
-          title="Hide it again"
+          title={card.noteLock ? 'Lock it again' : 'Hide it again'}
           onClick={(e) => {
             stop(e);
             setShow(false);
+            setUnlocked(undefined);
           }}
         >
-          <Icon name="eyeOff" size={12} />
+          <Icon name={card.noteLock ? 'lock' : 'eyeOff'} size={12} />
         </button>
       )}
     </div>

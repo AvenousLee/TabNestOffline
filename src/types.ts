@@ -131,6 +131,8 @@ export interface Prefs {
   googleSignIn?: boolean;
   /** Space every new tab opens on. Unset (or deleted): the first space in the list. */
   startSpaceId?: string;
+  /** Master password for locked card descriptions: only a check value made with it (lib/lock.ts), never the password. */
+  masterCheck?: string;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */

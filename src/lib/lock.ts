@@ -5,6 +5,10 @@
 //
 // Stored as one string: "v1.<salt>.<iv>.<ciphertext>" (base64url), so sync
 // and merge treat it like any other card field. viewer.js reads the same format.
+//
+// Cards are locked with the master password (Settings → General). TabNest never
+// stores it: only a small check value encrypted with it, to tell a typo from the
+// right password. Unlocked text is never kept: it is asked for every time.
 
 const ITERATIONS = 210_000;
 const enc = new TextEncoder();
@@ -38,19 +42,18 @@ export async function unlockNote(lock: string, password: string): Promise<string
   }
 }
 
-// Descriptions unlocked in this tab stay readable until the tab is closed (never saved anywhere).
-const unlocked = new Map<string, { lock: string; text: string; password: string }>();
+/** Shortest master password accepted. */
+export const MIN_MASTER = 6;
+const CHECK_TEXT = 'tabnest-master-password';
 
-/** The text and password of a description unlocked earlier in this tab (only while the lock is unchanged). */
-export function unlockedNote(cardId: string, lock: string): { text: string; password: string } | undefined {
-  const u = unlocked.get(cardId);
-  return u && u.lock === lock ? u : undefined;
-}
+/** The value saved in settings to recognise the master password later (not the password itself). */
+export const makeMasterCheck = (password: string) => lockNote(CHECK_TEXT, password);
 
-export function rememberUnlocked(cardId: string, lock: string, text: string, password: string): void {
-  unlocked.set(cardId, { lock, text, password });
-}
-
-export function forgetUnlocked(cardId: string): void {
-  unlocked.delete(cardId);
+export async function isMasterPassword(check: string | undefined, password: string): Promise<boolean> {
+  if (!check || !password) return false;
+  try {
+    return (await unlockNote(check, password)) === CHECK_TEXT;
+  } catch {
+    return false;
+  }
 }

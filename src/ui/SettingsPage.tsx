@@ -9,6 +9,7 @@ import { backupFileName, describeBackup, makeBackup, readBackup } from '../lib/b
 import { downloadText } from '../share/share';
 import { ABOUT, appVersion } from '../about';
 import { Field } from './Modal';
+import { MasterPasswordDialog, type MasterMode } from './MasterPasswordDialog';
 import { Icon } from './icons';
 
 const ALL_SITES = ['https://*/*', 'http://*/*'];
@@ -58,6 +59,7 @@ export function SettingsPage({ onRemotes }: { onRemotes: () => void }) {
           <>
             <ProfileSection />
             <GeneralSection />
+            <MasterPasswordSection />
           </>
         )}
         {tab === 'calendar' && <CalendarSection />}
@@ -105,6 +107,39 @@ function ProfileSection() {
           Save
         </button>
       </form>
+    </Section>
+  );
+}
+
+/** Master password for card descriptions marked “Password”. */
+function MasterPasswordSection() {
+  const s = useStore();
+  const [mode, setMode] = useState<MasterMode | null>(null);
+  const set = !!s.prefs.masterCheck;
+  return (
+    <Section title="Master password" hint="Locks card descriptions marked “Password” (card ✎ → Who can read the description). It’s asked for every time one is opened.">
+      <p className="switch-line check" style={{ cursor: 'default' }}>
+        <Icon name="lock" />
+        <b>{set ? 'A master password is set.' : 'No master password yet.'}</b>
+      </p>
+      <div className="row-actions">
+        {set ? (
+          <>
+            <button className="btn" onClick={() => setMode('change')}>
+              Change master password…
+            </button>
+            <button className="btn ghost danger" onClick={() => setMode('remove')}>
+              Remove
+            </button>
+          </>
+        ) : (
+          <button className="btn primary" onClick={() => setMode('set')}>
+            <Icon name="lock" /> Set master password…
+          </button>
+        )}
+      </div>
+      <p className="muted small">TabNest never saves the password itself, so nobody can recover it if it’s forgotten.</p>
+      {mode && <MasterPasswordDialog mode={mode} onClose={() => setMode(null)} />}
     </Section>
   );
 }

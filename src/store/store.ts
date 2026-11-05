@@ -4,7 +4,8 @@ import { fetchPreviewImage } from '../lib/image';
 import * as db from '../storage/storage';
 import { newId, nowIso } from '../lib/util';
 import { hashContent } from '../lib/spaceFile';
-import { isReadOnly, mergePending, mergeSyncResult, replaceBadFile, resolvePending, syncSpace, type Resolution } from '../sync/engine';
+import { lockNote, unlockNote } from '../lib/lock';
+import { followsOthers, isReadOnly, mergePending, mergeSyncResult, replaceBadFile, resolvePending, syncSpace, type Resolution } from '../sync/engine';
 import { matchRemoteForUrl } from '../sync/providers';
 import { setBadge } from '../browser/tabs';
 
@@ -64,6 +65,8 @@ interface State {
 
   addCard(spaceId: string, colId: string, card: NewCard, index?: number): void;
   updateCard(spaceId: string, colId: string, cardId: string, patch: Partial<Card>): void;
+  /** Re-lock every description locked with `oldPassword` so it opens with `newPassword`. Returns how many. */
+  relockNotes(oldPassword: string, newPassword: string): Promise<number>;
   deleteCard(spaceId: string, colId: string, cardId: string): void;
   moveCard(from: { spaceId: string; colId: string; cardId: string }, to: { spaceId: string; colId?: string; index?: number }): void;
 
@@ -306,6 +309,28 @@ export const useStore = create<State>()((set, get) => {
       editCollections(spaceId, (cols) =>
         cols.map((c) => (c.id === colId ? { ...c, cards: c.cards.map((k) => (k.id === cardId ? { ...k, ...patch, id: k.id } : k)) } : c)),
       ),
+
+    async relockNotes(oldPassword, newPassword) {
+      let count = 0;
+      // Spaces that follow someone else's copy are theirs to change.
+      for (const space of get().spaces.filter((x) => !followsOthers(x))) {
+        const relocked = new Map<string, string>();
+        for (const card of space.collections.flatMap((c) => c.cards)) {
+          if (!card.noteLock) continue;
+          try {
+            relocked.set(card.id, await lockNote(await unlockNote(card.noteLock, oldPassword), newPassword));
+          } catch {
+            /* locked with another password: left as it is */
+          }
+        }
+        if (!relocked.size) continue;
+        count += relocked.size;
+        editCollections(space.id, (cols) =>
+          cols.map((c) => ({ ...c, cards: c.cards.map((k) => (relocked.has(k.id) ? { ...k, noteLock: relocked.get(k.id) } : k)) })),
+        );
+      }
+      return count;
+    },
 
     deleteCard: (spaceId, colId, cardId) =>
       editCollections(spaceId, (cols) => cols.map((c) => (c.id === colId ? { ...c, cards: c.cards.filter((k) => k.id !== cardId) } : c))),
