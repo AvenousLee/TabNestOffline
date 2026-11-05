@@ -75,7 +75,8 @@ function CardNote({ card }: { card: Card }) {
   }
   if (!text) return null;
   return (
-    <div className="card-note" title={privateNote ? undefined : text}>
+    // An opened hidden/locked description is for reading: clicking it doesn't open the card or its editor.
+    <div className={`card-note${privateNote ? ' opened' : ''}`} title={privateNote ? undefined : text} onClick={privateNote ? stop : undefined}>
       {text}
       {privateNote && (
         <button

@@ -479,3 +479,4 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .card-note-hide:hover { color: var(--text); }
 .locked-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); }
 .locked-box .btn { margin-left: auto; }
+.card-note.opened { cursor: text; user-select: text; }
