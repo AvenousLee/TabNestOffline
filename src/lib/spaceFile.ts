@@ -1,5 +1,6 @@
 import type { Card, Collection, Profile, Space, SpaceContent, SpaceFile } from '../types';
 import { newId, sha256 } from './util';
+import { isNoteLock } from './lock';
 
 /** Strip UI-only fields (like collapsed) so they don't count as content changes. */
 export function contentOf(space: SpaceContent): SpaceContent {
@@ -12,7 +13,9 @@ export function contentOf(space: SpaceContent): SpaceContent {
         name: c.name,
         cards: c.cards.map((k): Card => {
           const card: Card = { id: k.id, title: k.title, url: k.url };
-          if (k.note) card.note = k.note;
+          if (isNoteLock(k.noteLock)) card.noteLock = k.noteLock;
+          else if (k.note) card.note = k.note;
+          if (k.noteHidden === true && card.note) card.noteHidden = true;
           if (k.favIconUrl) card.favIconUrl = k.favIconUrl;
           if (k.image && isSafeImage(k.image)) card.image = k.image;
           return card;

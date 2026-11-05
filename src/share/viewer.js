@@ -93,8 +93,47 @@
   }
 
   function copyLinks(col) {
-    var text = col.cards.map(function (c) { return [c.title, c.url || c.note].filter(Boolean).join('\n'); }).join('\n\n');
+    // Hidden and locked descriptions are not copied.
+    var text = col.cards.map(function (c) { return [c.title, c.url || (c.noteHidden ? '' : c.note)].filter(Boolean).join('\n'); }).join('\n\n');
     if (navigator.clipboard) navigator.clipboard.writeText(text);
+  }
+
+  // Password-protected descriptions: the same format as lib/lock.ts ("v1.salt.iv.data", AES-GCM, PBKDF2-SHA256).
+  function b64(s) { return Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), function (ch) { return ch.charCodeAt(0); }); }
+  function unlock(lock, password) {
+    var p = lock.split('.');
+    if (p.length !== 4 || p[0] !== 'v1' || !window.crypto || !crypto.subtle) return Promise.reject(new Error('This browser can\u2019t open locked descriptions.'));
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey'])
+      .then(function (base) { return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(p[1]), iterations: 210000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']); })
+      .then(function (key) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(p[2]) }, key, b64(p[3])); })
+      .then(function (plain) { return new TextDecoder().decode(plain); }, function () { throw new Error('Wrong password.'); });
+  }
+  function stop(e) { e.preventDefault(); e.stopPropagation(); }
+
+  // Description of a card: shown, folded away until clicked, or locked with a password.
+  function note(c) {
+    if (!c.noteLock && !c.note) return null;
+    if (!c.noteLock && !c.noteHidden) return el('div', { class: 'n', text: c.note, title: c.note });
+    var box = el('div', { class: 'n-closed' });
+    var open = function (text) { box.replaceWith(el('div', { class: 'n', text: text, title: text })); };
+    if (!c.noteLock) {
+      box.appendChild(el('button', { text: '\u{1F441} Hidden description \u00b7 show', onclick: function (e) { stop(e); open(c.note); } }));
+      return box;
+    }
+    box.appendChild(el('button', { text: '\u{1F512} Locked description \u00b7 unlock', onclick: function (e) {
+      stop(e);
+      var input = el('input', { type: 'password', placeholder: 'Password', onclick: stop });
+      var msg = el('span', { class: 'n-err' });
+      var go = function (e) {
+        if (e) stop(e);
+        unlock(c.noteLock, input.value).then(open, function (err) { msg.textContent = err.message; });
+      };
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(e); });
+      box.innerHTML = '';
+      box.appendChild(el('form', { class: 'n-unlock', onsubmit: go }, [input, el('button', { text: 'Unlock', onclick: go }), msg]));
+      input.focus();
+    } }));
+    return box;
   }
 
   function render() {
@@ -149,7 +188,7 @@
     var shown = 0;
     space.content.collections.forEach(function (col) {
       var cards = col.cards.filter(function (c) {
-        return !q || (c.title + ' ' + c.url + ' ' + (c.note || '')).toLowerCase().indexOf(q) !== -1;
+        return !q || (c.title + ' ' + c.url + ' ' + (c.noteHidden ? '' : c.note || '')).toLowerCase().indexOf(q) !== -1;
       });
       if (q && !cards.length) return;
       shown += cards.length;
@@ -158,7 +197,7 @@
         var parts = [
           picture(c),
           el('div', { class: 't' }, [c.url ? icon(c) : el('span', { class: 'letter note', text: '✎' }), el('span', { text: c.title || c.url || 'Note' })]),
-          c.note ? el('div', { class: 'n', text: c.note, title: c.note }) : null,
+          note(c),
           el('div', { class: 'h', text: c.url ? host(c.url) : 'Note' }),
         ];
         grid.appendChild(c.url

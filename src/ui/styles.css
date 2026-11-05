@@ -471,3 +471,11 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .default-mark { color: var(--muted); display: inline-flex; flex: none; }
 .sidebar.collapsed .default-mark { display: none; }
 .sidebar.collapsed .space-row .space-item { padding-right: 0; }
+/* Hidden or password-protected card descriptions */
+.card-note { position: relative; }
+.card-note-closed { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 6px; padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+.card-note-closed:hover { color: var(--text); border-color: var(--muted); }
+.card-note-hide { position: absolute; right: 0; bottom: 0; border: 0; background: var(--card); color: var(--muted); border-radius: 4px; padding: 1px 3px; cursor: pointer; display: inline-flex; }
+.card-note-hide:hover { color: var(--text); }
+.locked-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); }
+.locked-box .btn { margin-left: auto; }

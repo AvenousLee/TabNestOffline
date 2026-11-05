@@ -80,3 +80,10 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 }
 .card .pic { display: block; width: calc(100% + 28px); margin: -12px -14px 0; height: 120px; object-fit: cover; border-radius: 10px 10px 0 0; background: var(--bg); }
 .card .n { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+
+/* Hidden or password-protected descriptions */
+.card .n-closed button { border: 1px dashed var(--line, #444); background: transparent; color: inherit; opacity: 0.75; border-radius: 6px; padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+.card .n-unlock { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.card .n-unlock input { flex: 1; min-width: 100px; font: inherit; font-size: 12px; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--line, #444); background: transparent; color: inherit; }
+.card .n-unlock button { font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 5px; cursor: pointer; }
+.card .n-err { width: 100%; font-size: 11.5px; color: #e5484d; }

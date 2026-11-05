@@ -4,19 +4,37 @@ import { useStore } from '../../store/store';
 import { requestHostAccess } from '../../browser/tabs';
 import { isSafeImage } from '../../lib/spaceFile';
 import { dataUrlBytes, fetchPreviewImage, shrinkImage } from '../../lib/image';
+import { lockNote, rememberUnlocked, unlockedNote } from '../../lib/lock';
 import { Field, Modal } from '../Modal';
 import { Icon } from '../icons';
 import type { CardTarget } from '../SpaceView';
+import { UnlockDialog } from '../UnlockDialog';
 
 /** Spaces bigger than this sync noticeably slower; warn when pictures push past it. */
 const BIG_SPACE_BYTES = 3_000_000;
 const ALL_SITES = ['https://*', 'http://*'];
+const MIN_PASSWORD = 4;
+
+/** Who can read the description: everyone, after a click, or only with the password. */
+type Privacy = 'shown' | 'hidden' | 'locked';
 
 export function CardDialog({ target, onClose }: { target: CardTarget; onClose: () => void }) {
   const s = useStore();
   const [title, setTitle] = useState(target.card?.title ?? '');
   const [url, setUrl] = useState(target.card?.url ?? '');
-  const [note, setNote] = useState(target.card?.note ?? '');
+  const lock0 = target.card?.noteLock;
+  // A locked description needs its password to be read or changed (remembered if unlocked earlier in this tab).
+  const [opened, setOpened] = useState(() => (lock0 && target.card ? unlockedNote(target.card.id, lock0) : undefined));
+  const [unlocking, setUnlocking] = useState(false);
+  const [note, setNote] = useState(lock0 ? (opened?.text ?? '') : (target.card?.note ?? ''));
+  const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changePassword, setChangePassword] = useState(false);
+  const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
+  // A password is needed when locking for the first time, or when asked to change it.
+  const askPassword = privacy === 'locked' && !sealed && (!lock0 || changePassword);
+  const passwordOk = !askPassword || (newPassword.length >= MIN_PASSWORD && newPassword === confirmPassword);
   const [image, setImage] = useState(target.card?.image ?? '');
   // Pictures are optional: the section stays hidden until ticked (or the card already has one).
   const [withPicture, setWithPicture] = useState(!!target.card?.image);
@@ -34,7 +52,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   }
   // The link is optional: without one the card is a note (needs a title or a description).
   const hasLink = url.trim() !== '';
-  const valid = hasLink ? linkOk : !!(title.trim() || note.trim());
+  const valid = (hasLink ? linkOk : !!(title.trim() || note.trim() || sealed)) && passwordOk;
 
   const pickFile = async (file: Blob | null | undefined) => {
     if (!file) return;
@@ -86,14 +104,29 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
     s.savePrefs({ ...s.prefs, autoPreview: on });
   };
 
-  const save = () => {
+  const save = async () => {
     if (!valid) return;
-    // A note card with only a description: its first line becomes the title (not shown twice).
-    const noteTitle = note.trim().split('\n')[0].slice(0, 60);
+    const priv = privacy !== 'shown';
+    // A note card with only a description: its first line becomes the title (not shown twice);
+    // a private one gets a plain title instead, so the title doesn't give the text away.
+    const noteTitle = priv ? (privacy === 'locked' ? 'Locked note' : 'Hidden note') : note.trim().split('\n')[0].slice(0, 60);
+    const text = (hasLink || title.trim() || priv ? note.trim() : note.trim().slice(noteTitle.length).trim()) || undefined;
+    let noteLock: string | undefined;
+    if (privacy === 'locked') {
+      if (sealed) noteLock = lock0; // unchanged
+      else if (text) {
+        const password = askPassword ? newPassword : opened!.password;
+        setBusy('Locking the description…');
+        noteLock = await lockNote(text, password);
+        if (target.card) rememberUnlocked(target.card.id, noteLock, text, password);
+      }
+    }
     const data = {
       title: title.trim() || (hasLink ? normalized : noteTitle),
       url: hasLink ? normalized : '',
-      note: (hasLink || title.trim() ? note.trim() : note.trim().slice(noteTitle.length).trim()) || undefined,
+      note: noteLock ? undefined : text,
+      noteLock,
+      noteHidden: privacy === 'hidden' && text ? true : undefined,
       image: (withPicture && image) || undefined,
     };
     if (target.card) s.updateCard(target.spaceId, target.colId, target.card.id, data);
@@ -115,7 +148,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           <button className="btn ghost" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" disabled={!valid || !!busy} onClick={save}>
+          <button className="btn primary" disabled={!valid || !!busy} onClick={() => void save()}>
             Save
           </button>
         </>
@@ -124,7 +157,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          save();
+          void save();
         }}
       >
         <Field label="Link (optional)" hint={hasLink && !linkOk ? 'That doesn’t look like a web address.' : 'Leave empty to make a note card, e.g. for a temporary note.'}>
@@ -133,11 +166,71 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
         <Field label="Title">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Shown on the card" />
         </Field>
-        <Field label="Description" hint={`${note.length}/${NOTE_MAX} · the card shows 3 lines; hover it to read the rest.`}>
-          <textarea rows={3} maxLength={NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))} />
-        </Field>
+        {sealed ? (
+          <div className="field">
+            <span className="field-label">Description</span>
+            <div className="locked-box">
+              <Icon name="lock" /> <span>Protected with a password.</span>
+              <button type="button" className="btn" onClick={() => setUnlocking(true)}>
+                Unlock to see or change
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Field label="Description" hint={`${note.length}/${NOTE_MAX} · the card shows 3 lines; hover it to read the rest.`}>
+            <textarea rows={3} maxLength={NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))} />
+          </Field>
+        )}
+        <div className="field">
+          <span className="field-label">Who can read the description</span>
+          <div className="seg">
+            <button type="button" className={privacy === 'shown' ? 'on' : ''} disabled={sealed} onClick={() => setPrivacy('shown')} title={sealed ? 'Unlock it first' : undefined}>
+              <Icon name="eye" size={14} /> Shown
+            </button>
+            <button type="button" className={privacy === 'hidden' ? 'on' : ''} disabled={sealed} onClick={() => setPrivacy('hidden')} title={sealed ? 'Unlock it first' : undefined}>
+              <Icon name="eyeOff" size={14} /> Hidden
+            </button>
+            <button type="button" className={privacy === 'locked' ? 'on' : ''} onClick={() => setPrivacy('locked')}>
+              <Icon name="lock" size={14} /> Password
+            </button>
+          </div>
+          <span className="field-hint">
+            {privacy === 'shown' && 'Shown on the card.'}
+            {privacy === 'hidden' && 'Folded away on the card; one click shows it. Not secret: anyone with the space can still read it.'}
+            {privacy === 'locked' &&
+              'Encrypted with a password: unreadable without it, also in synced and shared copies. Nobody can recover it if the password is forgotten.'}
+          </span>
+        </div>
+        {askPassword && (
+          <div className="row">
+            <Field label={lock0 ? 'New password' : 'Password'} hint={`At least ${MIN_PASSWORD} characters.`}>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
+            </Field>
+            <Field label="Type it again" hint={confirmPassword && newPassword !== confirmPassword ? 'The passwords don’t match.' : undefined}>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+            </Field>
+          </div>
+        )}
+        {privacy === 'locked' && !!lock0 && !sealed && !changePassword && (
+          <button type="button" className="link-btn" onClick={() => setChangePassword(true)}>
+            Change the password
+          </button>
+        )}
         <button type="submit" hidden />
       </form>
+      {unlocking && target.card && lock0 && (
+        <UnlockDialog
+          cardId={target.card.id}
+          title={target.card.title}
+          lock={lock0}
+          onUnlocked={(text, password) => {
+            setOpened({ text, password });
+            setNote(text);
+            setUnlocking(false);
+          }}
+          onClose={() => setUnlocking(false)}
+        />
+      )}
 
       <label className="check">
         <input type="checkbox" checked={withPicture} onChange={(e) => setWithPicture(e.target.checked)} />

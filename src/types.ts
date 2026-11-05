@@ -5,6 +5,10 @@ export interface Card {
   title: string;
   url: string;
   note?: string;
+  /** Description folded away on the card until clicked (not secret). */
+  noteHidden?: boolean;
+  /** Password-protected description, encrypted (see lib/lock.ts). When set, `note` is empty. */
+  noteLock?: string;
   favIconUrl?: string;
   /** Picture shown on the card: an uploaded image (data: URL, kept small) or a web image link. */
   image?: string;

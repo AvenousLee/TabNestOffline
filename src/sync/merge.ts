@@ -19,7 +19,8 @@ export interface MergeResult {
   clean: boolean;
 }
 
-const CARD_FIELDS = ['title', 'url', 'note', 'image', 'favIconUrl'] as const;
+const CARD_FIELDS = ['title', 'url', 'note', 'noteHidden', 'noteLock', 'image', 'favIconUrl'] as const;
+const FIELD_NAMES: Partial<Record<(typeof CARD_FIELDS)[number], string>> = { favIconUrl: 'icon', note: 'description', noteHidden: 'description', noteLock: 'description' };
 const eq = (a: unknown, b: unknown) => (a ?? '') === (b ?? '');
 
 /** Pick a field value: whichever side changed it wins; both changed differently -> mine (reported). */
@@ -102,7 +103,7 @@ export function mergeSpaces(base: SpaceContent | undefined, mine: SpaceContent, 
     if (m && t) {
       const card = { id } as Card;
       for (const f of CARD_FIELDS) {
-        const v = pick(b?.card[f], m.card[f], t.card[f], clash(`“${m.card.title}”: ${f === 'favIconUrl' ? 'icon' : f} was changed on both sides; kept this device's version.`), hasBase);
+        const v = pick(b?.card[f], m.card[f], t.card[f], clash(`“${m.card.title}”: ${FIELD_NAMES[f] ?? f} was changed on both sides; kept this device's version.`), hasBase);
         if (v !== undefined && v !== '') (card as unknown as Record<string, unknown>)[f] = v;
       }
       if (!card.title) card.title = card.url;

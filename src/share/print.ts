@@ -25,7 +25,7 @@ export function buildPrintHtml(bundle: ShareBundle): string {
           (c) => `<section class="col"><h2>${esc(c.name)} <span>${c.cards.length} ${c.cards.length === 1 ? 'link' : 'links'}</span></h2><div class="grid">${c.cards
             .map(
               (k) => `<${k.url ? `a class="card" href="${esc(safeHref(k.url))}"` : 'div class="card note"'}>${isImage(k.image) ? `<img src="${esc(k.image)}" alt="">` : ''}<b>${esc(k.title || k.url || 'Note')}</b>${
-                k.note ? `<p>${esc(k.note)}</p>` : ''
+                k.noteLock ? '<p class="closed">🔒 Locked description</p>' : k.noteHidden ? '<p class="closed">Hidden description</p>' : k.note ? `<p>${esc(k.note)}</p>` : ''
               }${k.url ? `<small>${esc(hostOf(k.url))}</small><u>${esc(k.url)}</u></a>` : '<small>Note</small></div>'}`,
             )
             .join('')}</div></section>`,
@@ -57,6 +57,7 @@ h2 span { color: #6a6a75; font-size: 9pt; font-weight: 400; }
 .card small { color: #6a6a75; font-size: 8.5pt; }
 .card u { color: #2b59c3; font-size: 7.5pt; text-decoration: none; overflow-wrap: anywhere; }
 .card.note { border-left: 2.5pt solid #e8a33d; }
+.card p.closed { font-style: italic; color: #6a6a75; }
 .card.note p { color: #1d1d22; white-space: pre-line; }
 .owner { font-size: 9.5pt; margin: -6pt 0 10pt; color: #4a4a55; }
 .owner b { color: #1d1d22; }
