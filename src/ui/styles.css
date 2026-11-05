@@ -202,10 +202,17 @@ kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--line); border-
   .content { padding-right: 14px; }
 }
 @media (max-width: 640px) {
-  .app { grid-template-columns: 1fr; height: auto; }
-  .sidebar { max-height: none; }
-  .content { padding: 0 8px 8px; }
-  .space-view { padding: 16px; }
+  /* Slim icon strip on the left; the full sidebar opens over the page (App: drawer). */
+  .app, .app.left-collapsed { --left-w: 64px; grid-template-columns: 64px minmax(0, 1fr); }
+  .sidebar:not(.collapsed) { position: fixed; top: 0; bottom: 0; left: 0; width: 250px; z-index: 40; background: var(--bg); box-shadow: 8px 0 30px rgb(0 0 0 / 0.4); }
+  .drawer-backdrop { position: fixed; inset: 0; z-index: 39; background: rgb(0 0 0 / 0.35); }
+  .content { padding: 8px 8px 8px 0; }
+  .space-view { padding: 14px; }
+  /* Rows of buttons wrap instead of running off the right edge. */
+  .toolbar { flex-wrap: wrap; justify-content: flex-end; }
+  .toolbar .hint { display: none; }
+  .head-right { flex-wrap: wrap; }
+  .col-head { flex-wrap: wrap; }
 }
 .advanced { margin: 8px 0; }
 .advanced summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }

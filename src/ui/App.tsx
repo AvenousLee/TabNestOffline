@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import { activeSpace, useStore } from '../store/store';
 import { Sidebar } from './Sidebar';
 import { SpaceView, type CardTarget } from './SpaceView';
@@ -38,9 +38,17 @@ export function App() {
     document.title = s.page === 'calendar' && s.prefs.calendarEnabled !== false ? 'Calendar · TabNest' : s.page === 'settings' ? 'Settings · TabNest' : space ? `${space.name} · TabNest` : 'TabNest';
   }, [space, s.page]);
 
-  const leftCollapsed = !!s.prefs.leftCollapsed;
+  // Narrow windows show a slim icon strip; the full sidebar slides in over the page when opened.
+  const narrow = useNarrow();
+  const narrowRef = useRef(narrow);
+  narrowRef.current = narrow;
+  const [drawer, setDrawer] = useState(false);
+  useEffect(() => setDrawer(false), [s.activeSpaceId, s.page, narrow]);
+
+  const leftCollapsed = narrow ? !drawer : !!s.prefs.leftCollapsed;
   const rightCollapsed = !!s.prefs.rightCollapsed;
-  const toggleLeft = () => s.savePrefs({ ...useStore.getState().prefs, leftCollapsed: !useStore.getState().prefs.leftCollapsed });
+  const toggleLeft = () =>
+    narrowRef.current ? setDrawer((d) => !d) : s.savePrefs({ ...useStore.getState().prefs, leftCollapsed: !useStore.getState().prefs.leftCollapsed });
   const toggleRight = () => s.savePrefs({ ...useStore.getState().prefs, rightCollapsed: !useStore.getState().prefs.rightCollapsed });
 
   // "[" and "]" show/hide the side panels (when not typing).
@@ -61,6 +69,7 @@ export function App() {
 
   return (
     <div className={`app${leftCollapsed ? ' left-collapsed' : ''}${rightCollapsed ? ' right-collapsed' : ''}`}>
+      {narrow && drawer && <div className="drawer-backdrop" onClick={() => setDrawer(false)} />}
       <Sidebar
         onRemotes={() => setDialog({ type: 'remotes' })}
         onImport={() => setDialog({ type: 'import' })}
@@ -103,4 +112,18 @@ export function App() {
       {s.toast && <div className="toast">{s.toast}</div>}
     </div>
   );
+}
+
+const NARROW = '(max-width: 640px)';
+
+/** True while the window is narrow (phone-sized or a small side-by-side window). */
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => window.matchMedia(NARROW).matches);
+  useEffect(() => {
+    const m = window.matchMedia(NARROW);
+    const on = () => setNarrow(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return narrow;
 }
