@@ -7,7 +7,7 @@ export const ABOUT = {
   /** Optional line under the name, e.g. a company or role. */
   byline: '',
   /** Optional contact: an email address (becomes a mail link) or a web address. */
-  contact: 'AvenousLee117@gmail.com',
+  contact: '',
   /** Source code. */
   repoUrl: 'https://github.com/AvenousLee/TabNestOffline',
   description: 'Organise tabs into spaces and collections, share them as offline files, sync them through Git, and keep your calendars in one place.',

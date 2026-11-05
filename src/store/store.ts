@@ -164,10 +164,9 @@ export const useStore = create<State>()((set, get) => {
         pending: snap.pending,
         profile: snap.profile,
         prefs: snap.prefs,
-        page: s.ready ? s.page : (snap.page ?? 'space'),
-        activeSpaceId: snap.spaces.some((x) => x.id === (s.activeSpaceId ?? snap.activeSpaceId))
-          ? (s.activeSpaceId ?? snap.activeSpaceId)
-          : snap.spaces[0]?.id,
+        // A new tab always starts on the first space; later reloads (changes from other tabs) keep what is open.
+        page: s.ready ? s.page : 'space',
+        activeSpaceId: s.ready && snap.spaces.some((x) => x.id === s.activeSpaceId) ? s.activeSpaceId : snap.spaces[0]?.id,
       }));
     },
 
