@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import { acceptsDrop, draggingKind, endDrag, readDrop, reorderIndex, startDrag } from './dnd';
 import { Icon } from './icons';
+import { followsOthers } from '../sync/engine';
 
 export function Sidebar({
   onRemotes,
@@ -47,6 +48,18 @@ export function Sidebar({
       if (from >= 0 && item.spaceId !== spaceId) s.moveSpace(item.spaceId, reorderIndex(from, index, after));
     }
     if (item.kind === 'card' && item.spaceId !== spaceId) s.moveCard(item, { spaceId });
+    if (item.kind === 'collection' && item.spaceId !== spaceId) {
+      // A collection dropped on a space moves there; with Ctrl held it is copied.
+      const to = s.spaces.find((x) => x.id === spaceId)!;
+      const from = s.spaces.find((x) => x.id === item.spaceId);
+      if (followsOthers(to)) s.showToast(`${to.name} follows someone else's copy, so collections can't be added to it.`);
+      else {
+        const mode = e.ctrlKey || (from && followsOthers(from)) ? 'copy' : 'move';
+        const name = from?.collections.find((c) => c.id === item.colId)?.name ?? 'Collection';
+        s.transferCollections(item.spaceId, [item.colId], spaceId, mode);
+        s.showToast(`${mode === 'copy' ? 'Copied' : 'Moved'} “${name}” to ${to.name}.`);
+      }
+    }
     if (item.kind === 'tab') {
       const space = s.spaces.find((x) => x.id === spaceId)!;
       const colId = space.collections[0]?.id ?? s.addCollection(spaceId, 'Inbox');
@@ -109,7 +122,7 @@ export function Sidebar({
               onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
               onDragEnd={endDrag}
               onDragOver={(e) => {
-                if (!acceptsDrop(e, ['space', 'card', 'tab'])) return;
+                if (!acceptsDrop(e, ['space', 'card', 'tab', 'collection'])) return;
                 e.preventDefault();
                 if (draggingKind() === 'space') {
                   // Upper half: drop above this space; lower half: below it.

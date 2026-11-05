@@ -116,8 +116,19 @@ function GeneralSection() {
     if (on && !(await requestHostAccess(ALL_SITES))) return;
     s.savePrefs({ ...s.prefs, autoPreview: on });
   };
+  const start = s.spaces.some((x) => x.id === s.prefs.startSpaceId) ? s.prefs.startSpaceId! : '';
   return (
     <Section title="General">
+      <Field label="New tabs open on" hint="The space shown each time you open a new tab.">
+        <select value={start} onChange={(e) => s.savePrefs({ ...s.prefs, startSpaceId: e.target.value || undefined })}>
+          <option value="">The first space in the list{s.spaces[0] ? ` (now: ${s.spaces[0].name})` : ''}</option>
+          {s.spaces.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </select>
+      </Field>
       <label className="check">
         <input type="checkbox" checked={s.prefs.autoPreview} onChange={(e) => void toggleAuto(e.target.checked)} />
         Automatically add website previews when I save tabs <span className="muted small">(Chrome asks once for access to all websites)</span>

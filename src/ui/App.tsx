@@ -8,6 +8,7 @@ import { SpaceSettingsDialog } from './dialogs/SpaceSettingsDialog';
 import { RemotesDialog } from './dialogs/RemotesDialog';
 import { ShareDialog } from './dialogs/ShareDialog';
 import { ImportDialog } from './dialogs/ImportDialog';
+import { CopyCollectionsDialog } from './dialogs/CopyCollectionsDialog';
 
 // Calendar code (incl. the iCal reader) loads only when the Calendar page is opened.
 const CalendarPage = lazy(() => import('./calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })));
@@ -19,6 +20,7 @@ type Dialog =
   | { type: 'remotes'; editId?: string; tokenOnly?: boolean }
   | { type: 'share'; ids: string[] }
   | { type: 'import' }
+  | { type: 'copyCols'; spaceId: string; colIds: string[] }
   | null;
 
 export function App() {
@@ -82,6 +84,7 @@ export function App() {
             onSettings={() => setDialog({ type: 'settings', spaceId: space.id })}
             onShare={() => setDialog({ type: 'share', ids: [space.id] })}
             onUpdateToken={(remoteId) => setDialog({ type: 'remotes', editId: remoteId, tokenOnly: true })}
+            onCopyCollections={(colIds) => setDialog({ type: 'copyCols', spaceId: space.id, colIds })}
           />
         ) : (
           <main className="space-view">
@@ -96,6 +99,7 @@ export function App() {
       {dialog?.type === 'remotes' && <RemotesDialog onClose={close} editId={dialog.editId} tokenOnly={dialog.tokenOnly} />}
       {dialog?.type === 'share' && <ShareDialog initial={dialog.ids} onClose={close} />}
       {dialog?.type === 'import' && <ImportDialog onClose={close} />}
+      {dialog?.type === 'copyCols' && <CopyCollectionsDialog spaceId={dialog.spaceId} initial={dialog.colIds} onClose={close} />}
       {s.toast && <div className="toast">{s.toast}</div>}
     </div>
   );

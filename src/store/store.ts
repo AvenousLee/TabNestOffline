@@ -59,6 +59,8 @@ interface State {
   deleteCollection(spaceId: string, colId: string): void;
   toggleCollapsed(spaceId: string, colId: string): void;
   moveCollection(spaceId: string, colId: string, toIndex: number): void;
+  /** Copy or move collections to the end of another space. Copies get new ids. Returns how many were done. */
+  transferCollections(fromSpaceId: string, colIds: string[], toSpaceId: string, mode: 'copy' | 'move'): number;
 
   addCard(spaceId: string, colId: string, card: NewCard, index?: number): void;
   updateCard(spaceId: string, colId: string, cardId: string, patch: Partial<Card>): void;
@@ -164,9 +166,12 @@ export const useStore = create<State>()((set, get) => {
         pending: snap.pending,
         profile: snap.profile,
         prefs: snap.prefs,
-        // A new tab always starts on the first space; later reloads (changes from other tabs) keep what is open.
+        // A new tab starts on the chosen start space (else the first); later reloads (changes from other tabs) keep what is open.
         page: s.ready ? s.page : 'space',
-        activeSpaceId: s.ready && snap.spaces.some((x) => x.id === s.activeSpaceId) ? s.activeSpaceId : snap.spaces[0]?.id,
+        activeSpaceId:
+          s.ready && snap.spaces.some((x) => x.id === s.activeSpaceId)
+            ? s.activeSpaceId
+            : (snap.spaces.find((x) => x.id === snap.prefs.startSpaceId) ?? snap.spaces[0])?.id,
       }));
     },
 
@@ -249,6 +254,19 @@ export const useStore = create<State>()((set, get) => {
     deleteCollection: (spaceId, colId) => editCollections(spaceId, (cols) => cols.filter((c) => c.id !== colId)),
     toggleCollapsed: (spaceId, colId) =>
       editCollections(spaceId, (cols) => cols.map((c) => (c.id === colId ? { ...c, collapsed: !c.collapsed || undefined } : c)), false),
+
+    transferCollections(fromSpaceId, colIds, toSpaceId, mode) {
+      const from = get().spaces.find((x) => x.id === fromSpaceId);
+      const to = get().spaces.find((x) => x.id === toSpaceId);
+      if (!from || !to || from.id === to.id) return 0;
+      const picked = from.collections.filter((c) => colIds.includes(c.id));
+      if (!picked.length) return 0;
+      const added =
+        mode === 'copy' ? picked.map((c) => ({ ...c, id: newId(), cards: c.cards.map((k) => ({ ...k, id: newId() })) })) : picked;
+      editCollections(toSpaceId, (cols) => [...cols, ...added]);
+      if (mode === 'move') editCollections(fromSpaceId, (cols) => cols.filter((c) => !colIds.includes(c.id)));
+      return picked.length;
+    },
 
     moveCollection(spaceId, colId, toIndex) {
       editCollections(spaceId, (cols) => {

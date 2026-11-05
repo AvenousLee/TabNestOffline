@@ -451,3 +451,4 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .space-item.drop-before::before, .space-item.drop-after::after { content: ''; position: absolute; left: 6px; right: 6px; height: 3px; border-radius: 2px; background: var(--accent-hover); pointer-events: none; }
 .space-item.drop-before::before { top: -2px; }
 .space-item.drop-after::after { bottom: -2px; }
+.copy-cols-head { display: flex; align-items: center; justify-content: space-between; margin: 12px 0 4px; }

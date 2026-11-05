@@ -80,6 +80,8 @@ export const isReadOnly = (space: Space) => {
   const t = space.sync?.target;
   return !t || t.type !== 'repo' || !!t.follow;
 };
+/** Follows someone else's copy (a shared link or a followed repo): local changes would be overwritten, so don't add to it. */
+export const followsOthers = (space: Space) => !!space.sync && isReadOnly(space);
 const isEmpty = (space: Space) => space.collections.every((c) => c.cards.length === 0);
 
 /** Replace a space's content with the remote copy. Keeps local settings and collapsed state. */

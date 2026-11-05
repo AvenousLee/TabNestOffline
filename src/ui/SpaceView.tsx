@@ -18,12 +18,15 @@ export function SpaceView({
   onSettings,
   onShare,
   onUpdateToken,
+  onCopyCollections,
 }: {
   space: Space;
   onEditCard: (t: CardTarget) => void;
   onSettings: () => void;
   onShare: () => void;
   onUpdateToken: (remoteId: string) => void;
+  /** Open “Copy or move collections”, with these collections ticked. */
+  onCopyCollections: (colIds: string[]) => void;
 }) {
   const s = useStore();
   const [newDrop, setNewDrop] = useState(false);
@@ -82,7 +85,10 @@ export function SpaceView({
       </header>
 
       <div className="toolbar">
-        <span className="hint">Double-click names to rename · drag cards between collections or onto a space</span>
+        <span className="hint">Double-click names to rename · drag cards or collections onto a space in the sidebar (Ctrl: copy)</span>
+        <button className="btn ghost" disabled={!space.collections.length} onClick={() => onCopyCollections([])} title="Copy or move collections of this space to another space">
+          <Icon name="copy" /> Copy / move…
+        </button>
         <button className="btn primary" onClick={() => s.addCollection(space.id, 'New collection')}>
           <Icon name="plus" /> New Collection
         </button>
@@ -100,6 +106,7 @@ export function SpaceView({
           index={i}
           onEditCard={(card) => onEditCard({ spaceId: space.id, colId: col.id, card })}
           onAddCard={() => onEditCard({ spaceId: space.id, colId: col.id })}
+          onCopy={() => onCopyCollections([col.id])}
         />
       ))}
 

@@ -13,12 +13,14 @@ export function CollectionView({
   index,
   onEditCard,
   onAddCard,
+  onCopy,
 }: {
   space: Space;
   col: Collection;
   index: number;
   onEditCard: (card: Card) => void;
   onAddCard: () => void;
+  onCopy: () => void;
 }) {
   const s = useStore();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -97,6 +99,9 @@ export function CollectionView({
           </button>
           <button className="icon-btn" title="Open all in a new window" disabled={!urls.length} onClick={() => void openMany(urls, true)}>
             <Icon name="window" />
+          </button>
+          <button className="icon-btn" title="Copy or move to another space" onClick={onCopy}>
+            <Icon name="copy" />
           </button>
           <button className="icon-btn" title="Rename" onClick={() => setEditingName(true)}>
             <Icon name="edit" />

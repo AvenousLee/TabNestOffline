@@ -125,6 +125,8 @@ export interface Prefs {
   calendarEnabled?: boolean;
   /** Google sign-in on the Calendar page (own client ID). Unset: on when a Google account was already added. */
   googleSignIn?: boolean;
+  /** Space every new tab opens on. Unset (or deleted): the first space in the list. */
+  startSpaceId?: string;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */
