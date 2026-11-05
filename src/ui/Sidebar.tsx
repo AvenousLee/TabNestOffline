@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
-import { acceptsDrop, endDrag, readDrop, startDrag } from './dnd';
+import { acceptsDrop, draggingKind, endDrag, readDrop, reorderIndex, startDrag } from './dnd';
 import { Icon } from './icons';
 
 export function Sidebar({
@@ -18,7 +18,8 @@ export function Sidebar({
 }) {
   const s = useStore();
   const searchRef = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState<string | null>(null);
+  /** Space under the pointer while dragging: a line above/below it for a space, an outline for a card or tab. */
+  const [over, setOver] = useState<{ id: string; at: 'before' | 'after' | 'into' } | null>(null);
 
   // "/" focuses search, like Toby.
   useEffect(() => {
@@ -36,11 +37,15 @@ export function Sidebar({
 
   const onDrop = (e: React.DragEvent, spaceId: string, index: number) => {
     e.preventDefault();
+    const after = over?.at === 'after';
     setOver(null);
     const item = readDrop(e);
     endDrag();
     if (!item) return;
-    if (item.kind === 'space') s.moveSpace(item.spaceId, index);
+    if (item.kind === 'space') {
+      const from = s.spaces.findIndex((x) => x.id === item.spaceId);
+      if (from >= 0 && item.spaceId !== spaceId) s.moveSpace(item.spaceId, reorderIndex(from, index, after));
+    }
     if (item.kind === 'card' && item.spaceId !== spaceId) s.moveCard(item, { spaceId });
     if (item.kind === 'tab') {
       const space = s.spaces.find((x) => x.id === spaceId)!;
@@ -98,7 +103,7 @@ export function Sidebar({
           return (
             <button
               key={space.id}
-              className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over === space.id ? ' over' : ''}`}
+              className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over?.id === space.id ? (over.at === 'into' ? ' over' : ` drop-${over.at}`) : ''}`}
               onClick={() => s.setActive(space.id)}
               draggable
               onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
@@ -106,11 +111,16 @@ export function Sidebar({
               onDragOver={(e) => {
                 if (!acceptsDrop(e, ['space', 'card', 'tab'])) return;
                 e.preventDefault();
-                setOver(space.id);
+                if (draggingKind() === 'space') {
+                  // Upper half: drop above this space; lower half: below it.
+                  const r = e.currentTarget.getBoundingClientRect();
+                  e.dataTransfer.dropEffect = 'move';
+                  setOver({ id: space.id, at: e.clientY < r.top + r.height / 2 ? 'before' : 'after' });
+                } else setOver({ id: space.id, at: 'into' });
               }}
               onDragLeave={() => setOver(null)}
               onDrop={(e) => onDrop(e, space.id, i)}
-              title={collapsed ? space.name : undefined}
+              title={collapsed ? space.name : 'Drag to change the order'}
             >
               <span className="space-dot" style={{ background: space.color }}>
                 {space.name.charAt(0).toUpperCase()}

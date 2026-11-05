@@ -49,6 +49,15 @@ export function readDrop(e: DragEvent): DragItem | null {
   return null;
 }
 
+/**
+ * New position for an item dragged from `from` and dropped above (after = false)
+ * or below (after = true) the item at `over`, in the list without the dragged item.
+ */
+export function reorderIndex(from: number, over: number, after: boolean): number {
+  const to = over + (after ? 1 : 0);
+  return from < to ? to - 1 : to;
+}
+
 /** Index to insert at, based on where the pointer is over a list of card elements. */
 export function dropIndex(e: DragEvent, container: HTMLElement, selector: string): number {
   const items = [...container.querySelectorAll<HTMLElement>(selector)];

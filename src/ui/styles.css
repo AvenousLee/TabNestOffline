@@ -446,3 +446,8 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .settings-tabs button:hover { color: var(--text); background: var(--card); }
 .settings-tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 .cal-google-off { margin-top: 14px; }
+/* Reordering spaces: a line where the dragged space will go. */
+.space-item { position: relative; }
+.space-item.drop-before::before, .space-item.drop-after::after { content: ''; position: absolute; left: 6px; right: 6px; height: 3px; border-radius: 2px; background: var(--accent-hover); pointer-events: none; }
+.space-item.drop-before::before { top: -2px; }
+.space-item.drop-after::after { bottom: -2px; }
