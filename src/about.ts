@@ -3,7 +3,7 @@
 
 export const ABOUT = {
   /** Who created TabNest, e.g. "Alex Tan". Empty: the contact is shown as the credit (or a placeholder if both are empty). */
-  author: '',
+  author: 'Avenous Lee',
   /** Optional line under the name, e.g. a company or role. */
   byline: '',
   /** Optional contact: an email address (becomes a mail link) or a web address. */
