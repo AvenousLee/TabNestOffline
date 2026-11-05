@@ -2,12 +2,12 @@
 // Fill in the credit here; empty fields are simply not shown.
 
 export const ABOUT = {
-  /** Who created TabNest, e.g. "Avenous Lee". Empty: Settings shows a placeholder. */
+  /** Who created TabNest, e.g. "Alex Tan". Empty: the contact is shown as the credit (or a placeholder if both are empty). */
   author: '',
   /** Optional line under the name, e.g. a company or role. */
   byline: '',
   /** Optional contact: an email address (becomes a mail link) or a web address. */
-  contact: '',
+  contact: 'AvenousLee117@gmail.com',
   /** Source code. */
   repoUrl: 'https://github.com/AvenousLee/TabNestOffline',
   description: 'Organise tabs into spaces and collections, share them as offline files, sync them through Git, and keep your calendars in one place.',

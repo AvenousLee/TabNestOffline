@@ -323,7 +323,10 @@ function BackupSection() {
 }
 
 function AboutSection() {
+  const name = ABOUT.author.trim();
   const contact = ABOUT.contact.trim();
+  // Without a name, the contact itself is the credit.
+  const contactClass = name ? undefined : 'about-author';
   return (
     <Section title="About">
       <div className="about">
@@ -336,15 +339,17 @@ function AboutSection() {
         </div>
         <div className="about-credit">
           <span className="muted small">Created by</span>
-          {ABOUT.author.trim() ? (
+          {name || contact ? (
             <>
-              <b className="about-author">{ABOUT.author}</b>
+              {name && <b className="about-author">{name}</b>}
               {ABOUT.byline.trim() && <span>{ABOUT.byline}</span>}
               {contact &&
                 (isEmail(contact) ? (
-                  <a href={`mailto:${contact}`}>{contact}</a>
+                  <a className={contactClass} href={`mailto:${contact}`}>
+                    {contact}
+                  </a>
                 ) : (
-                  <a href={contact} target="_blank" rel="noreferrer">
+                  <a className={contactClass} href={contact} target="_blank" rel="noreferrer">
                     {contact}
                   </a>
                 ))}
