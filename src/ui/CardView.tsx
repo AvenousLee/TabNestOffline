@@ -55,16 +55,19 @@ function CardNote({ card }: { card: Card }) {
         {asking &&
           card.noteLock &&
           createPortal(
-            <UnlockDialog
-              title={card.title}
-              lock={card.noteLock}
-              onUnlocked={(t) => {
-                setUnlocked(t);
-                setAsking(false);
-                setShow(true);
-              }}
-              onClose={() => setAsking(false)}
-            />,
+            // React passes events from this window up to the card (a click would open the note editor): stop them here.
+            <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+              <UnlockDialog
+                title={card.title}
+                lock={card.noteLock}
+                onUnlocked={(t) => {
+                  setUnlocked(t);
+                  setAsking(false);
+                  setShow(true);
+                }}
+                onClose={() => setAsking(false)}
+              />
+            </div>,
             document.body,
           )}
       </>
