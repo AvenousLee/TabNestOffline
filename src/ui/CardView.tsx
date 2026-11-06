@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card } from '../types';
 import { faviconFor } from '../browser/tabs';
@@ -6,6 +6,7 @@ import { hostOf } from '../lib/util';
 import { endDrag, startDrag } from './dnd';
 import { Icon } from './icons';
 import { UnlockDialog } from './UnlockDialog';
+import { onAutoHide } from './autoHide';
 
 export function Favicon({ url, fallback, title }: { url: string; fallback?: string; title: string }) {
   const [broken, setBroken] = useState(false);
@@ -34,6 +35,16 @@ function CardNote({ card }: { card: Card }) {
   // A locked description is asked for every time: its text is kept only while it is open.
   const [unlocked, setUnlocked] = useState<string>();
   const text = card.noteLock ? unlocked : card.note;
+  // Close again after a while without use (Settings → General), like a screen lock.
+  useEffect(
+    () =>
+      onAutoHide(() => {
+        setShow(false);
+        setUnlocked(undefined);
+        setAsking(false);
+      }),
+    [],
+  );
   const privateNote = !!card.noteLock || !!card.noteHidden;
 
   if (privateNote && !(show && text)) {

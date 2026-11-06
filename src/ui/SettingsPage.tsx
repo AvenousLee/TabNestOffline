@@ -10,6 +10,7 @@ import { downloadText } from '../share/share';
 import { ABOUT, appVersion } from '../about';
 import { Field } from './Modal';
 import { MasterPasswordDialog, type MasterMode } from './MasterPasswordDialog';
+import { AUTO_HIDE_CHOICES, autoHideMinutes, autoHideOnLeave } from './autoHide';
 import { Icon } from './icons';
 
 const ALL_SITES = ['https://*/*', 'http://*/*'];
@@ -117,7 +118,7 @@ function MasterPasswordSection() {
   const [mode, setMode] = useState<MasterMode | null>(null);
   const set = !!s.prefs.masterCheck;
   return (
-    <Section title="Master password" hint="Locks card descriptions marked “Password” (card ✎ → Who can read the description). It’s asked for every time one is opened.">
+    <Section title="Master password & privacy" hint="Locks card descriptions marked “Password” (card ✎ → Who can read the description). It’s asked for every time one is opened.">
       <p className="switch-line check" style={{ cursor: 'default' }}>
         <Icon name="lock" />
         <b>{set ? 'A master password is set.' : 'No master password yet.'}</b>
@@ -139,6 +140,24 @@ function MasterPasswordSection() {
         )}
       </div>
       <p className="muted small">TabNest never saves the password itself, so nobody can recover it if it’s forgotten.</p>
+
+      <h3>Hide opened descriptions again</h3>
+      <p className="muted small">Like a screen lock: opened hidden or locked descriptions close by themselves, and locked ones need the password again.</p>
+      <div className="row">
+        <Field label="After no mouse or keyboard use for">
+          <select value={autoHideMinutes(s.prefs)} onChange={(e) => s.savePrefs({ ...s.prefs, noteAutoHideMinutes: Number(e.target.value) })}>
+            {AUTO_HIDE_CHOICES.map((m) => (
+              <option key={m} value={m}>
+                {m === 0 ? 'Never' : m === 1 ? '1 minute' : `${m} minutes`}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <label className="check">
+        <input type="checkbox" checked={autoHideOnLeave(s.prefs)} onChange={(e) => s.savePrefs({ ...s.prefs, noteAutoHideOnLeave: e.target.checked })} />
+        Also as soon as I switch to another tab or minimise the window
+      </label>
       {mode && <MasterPasswordDialog mode={mode} onClose={() => setMode(null)} />}
     </Section>
   );

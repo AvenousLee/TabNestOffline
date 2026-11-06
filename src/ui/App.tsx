@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import { activeSpace, useStore } from '../store/store';
 import { Sidebar } from './Sidebar';
+import { autoHideMinutes, autoHideOnLeave, useAutoHide } from './autoHide';
 import { SpaceView, type CardTarget } from './SpaceView';
 import { OpenTabsPanel } from './OpenTabsPanel';
 import { CardDialog } from './dialogs/CardDialog';
@@ -39,6 +40,9 @@ export function App() {
   }, [space, s.page]);
 
   // Narrow windows show a slim icon strip; the full sidebar slides in over the page when opened.
+  // Opened hidden/locked card descriptions close again after a while, like a screen lock.
+  useAutoHide(autoHideMinutes(s.prefs), autoHideOnLeave(s.prefs));
+
   const narrow = useNarrow();
   const narrowRef = useRef(narrow);
   narrowRef.current = narrow;

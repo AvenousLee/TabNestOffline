@@ -10,6 +10,7 @@ import { Icon } from '../icons';
 import type { CardTarget } from '../SpaceView';
 import { UnlockDialog } from '../UnlockDialog';
 import { MasterPasswordDialog } from '../MasterPasswordDialog';
+import { onAutoHide } from '../autoHide';
 
 /** Spaces bigger than this sync noticeably slower; warn when pictures push past it. */
 const BIG_SPACE_BYTES = 3_000_000;
@@ -31,6 +32,20 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
   const [master, setMaster] = useState('');
   const [lockError, setLockError] = useState('');
+  // Left open too long: lock the description again (other changes stay), like a screen lock.
+  useEffect(
+    () =>
+      onAutoHide(() => {
+        if (!lock0) return;
+        setOpened((o) => {
+          if (o) setLockError('Locked again after a while without use. Unlock to see or change it.');
+          return undefined;
+        });
+        setNote('');
+        setUnlocking(false);
+      }),
+    [lock0],
+  );
   const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
   const hasMaster = !!s.prefs.masterCheck;
   // Locking (again) uses the master password: asked here unless the card was just unlocked with it.

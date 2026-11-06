@@ -133,6 +133,10 @@ export interface Prefs {
   startSpaceId?: string;
   /** Master password for locked card descriptions: only a check value made with it (lib/lock.ts), never the password. */
   masterCheck?: string;
+  /** Opened hidden/locked descriptions close after this many idle minutes (0 = never; unset = 5). */
+  noteAutoHideMinutes?: number;
+  /** …and as soon as the tab is left (unset = yes). */
+  noteAutoHideOnLeave?: boolean;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */
