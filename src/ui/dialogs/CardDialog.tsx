@@ -28,9 +28,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   // A locked description must be unlocked (password asked every time) to be read or changed.
   // Already unlocked on the card: no need to ask again here.
   const [pre] = useState(() => (target.card ? getOpenNote(target.card.id, target.card.noteLock) : undefined));
-  const [opened, setOpened] = useState<{ text: string; byMaster: boolean; password: string } | undefined>(
-    pre && { text: pre.text, password: pre.password, byMaster: false },
-  );
+  const [opened, setOpened] = useState<{ text: string; password: string } | undefined>(pre && { text: pre.text, password: pre.password });
   const [unlocking, setUnlocking] = useState(false);
   const [settingMaster, setSettingMaster] = useState(false);
   const [note, setNote] = useState(lock0 ? (pre?.text ?? '') : (target.card?.note ?? ''));
@@ -51,15 +49,13 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
       }),
     [lock0],
   );
-  useEffect(() => {
-    if (pre) void isMasterPassword(s.prefs.masterCheck, pre.password).then((byMaster) => setOpened((o) => o && { ...o, byMaster }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
   const hasMaster = !!s.prefs.masterCheck;
   // Locking (again) uses the master password: asked here unless the card was just unlocked with it.
-  const askMaster = privacy === 'locked' && !sealed && !opened?.byMaster;
-  const passwordOk = privacy !== 'locked' || sealed || (hasMaster && (!askMaster || !!master));
+  // Once unlocked, saving locks it again with the same password. Only locking a description
+  // for the first time uses (and asks for) the master password.
+  const askMaster = privacy === 'locked' && !sealed && !opened;
+  const passwordOk = privacy !== 'locked' || sealed || !!opened || (hasMaster && !!master);
   const [image, setImage] = useState(target.card?.image ?? '');
   // Pictures are optional: the section stays hidden until ticked (or the card already has one).
   const [withPicture, setWithPicture] = useState(!!target.card?.image);
@@ -230,10 +226,12 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
             {privacy === 'shown' && 'Shown on the card.'}
             {privacy === 'hidden' && 'Folded away on the card; one click shows it. Not secret: anyone with the space can still read it.'}
             {privacy === 'locked' &&
-              'Encrypted with your master password: unreadable without it, also in synced and shared copies. It’s asked for every time the description is opened.'}
+              (opened
+                ? 'Saving keeps it encrypted with the password you just unlocked it with: unreadable without it, also in synced and shared copies.'
+                : 'Encrypted with your master password: unreadable without it, also in synced and shared copies. It’s asked for every time the description is opened.')}
           </span>
         </div>
-        {privacy === 'locked' && !sealed && !hasMaster && (
+        {askMaster && !hasMaster && (
           <div className="locked-box">
             <Icon name="lock" /> <span>Set a master password first. It locks all the descriptions you mark as Password.</span>
             <button type="button" className="btn primary" onClick={() => setSettingMaster(true)}>
@@ -254,8 +252,8 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           title={target.card.title}
           lock={lock0}
           onUnlocked={(text, password) => {
-            // Opened with the master password: saving can lock it again without asking twice.
-            void isMasterPassword(s.prefs.masterCheck, password).then((byMaster) => setOpened({ text, password, byMaster }));
+            // Saving locks it again with this same password, without asking twice.
+            setOpened({ text, password });
             setNote(text);
             setUnlocking(false);
           }}
