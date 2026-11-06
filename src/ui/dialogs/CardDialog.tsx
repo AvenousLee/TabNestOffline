@@ -24,7 +24,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const s = useStore();
   const [title, setTitle] = useState(target.card?.title ?? '');
   const [url, setUrl] = useState(target.card?.url ?? '');
-  const lock0 = target.card?.noteLock;
+  const [lock0, setLock0] = useState(target.card?.noteLock);
   // A locked description must be unlocked (password asked every time) to be read or changed.
   // Already unlocked on the card: no need to ask again here.
   const [pre] = useState(() => (target.card ? getOpenNote(target.card.id, target.card.noteLock) : undefined));
@@ -35,19 +35,32 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
   const [master, setMaster] = useState('');
   const [lockError, setLockError] = useState('');
-  // Left open too long: lock the description again (other changes stay), like a screen lock.
+  // Left open too long: lock the description again, like a screen lock. A changed description is
+  // saved first (encrypted with the password it was unlocked with); other unsaved changes stay in the form.
+  const live = useRef({ opened, note });
+  live.current = { opened, note };
   useEffect(
     () =>
       onAutoHide(() => {
-        if (!lock0) return;
-        setOpened((o) => {
-          if (o) setLockError('Locked again after a while without use. Unlock to see or change it.');
-          return undefined;
-        });
+        const { opened: o, note: n } = live.current;
+        if (!o || !target.card) return;
+        const text = n.trim();
+        const card = target.card;
+        setOpened(undefined);
         setNote('');
+        setPrivacy('locked');
         setUnlocking(false);
+        if (!text || text === o.text) {
+          setLockError('Locked again after a while without use. Unlock to see or change it.');
+          return;
+        }
+        void lockNote(text, o.password).then((noteLock) => {
+          s.updateCard(target.spaceId, target.colId, card.id, { noteLock, note: undefined, noteHidden: undefined });
+          setLock0(noteLock);
+          setLockError('Your changes to the description were saved, then it was locked again after a while without use.');
+        });
       }),
-    [lock0],
+    [], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
   const hasMaster = !!s.prefs.masterCheck;
