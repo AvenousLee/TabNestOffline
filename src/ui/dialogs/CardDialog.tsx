@@ -11,6 +11,7 @@ import type { CardTarget } from '../SpaceView';
 import { UnlockDialog } from '../UnlockDialog';
 import { MasterPasswordDialog } from '../MasterPasswordDialog';
 import { onAutoHide } from '../autoHide';
+import { getOpenNote, setOpenNote } from '../openNotes';
 
 /** Spaces bigger than this sync noticeably slower; warn when pictures push past it. */
 const BIG_SPACE_BYTES = 3_000_000;
@@ -25,10 +26,14 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const [url, setUrl] = useState(target.card?.url ?? '');
   const lock0 = target.card?.noteLock;
   // A locked description must be unlocked (password asked every time) to be read or changed.
-  const [opened, setOpened] = useState<{ text: string; byMaster: boolean; password: string }>();
+  // Already unlocked on the card: no need to ask again here.
+  const [pre] = useState(() => (target.card ? getOpenNote(target.card.id, target.card.noteLock) : undefined));
+  const [opened, setOpened] = useState<{ text: string; byMaster: boolean; password: string } | undefined>(
+    pre && { text: pre.text, password: pre.password, byMaster: false },
+  );
   const [unlocking, setUnlocking] = useState(false);
   const [settingMaster, setSettingMaster] = useState(false);
-  const [note, setNote] = useState(lock0 ? '' : (target.card?.note ?? ''));
+  const [note, setNote] = useState(lock0 ? (pre?.text ?? '') : (target.card?.note ?? ''));
   const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
   const [master, setMaster] = useState('');
   const [lockError, setLockError] = useState('');
@@ -46,6 +51,10 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
       }),
     [lock0],
   );
+  useEffect(() => {
+    if (pre) void isMasterPassword(s.prefs.masterCheck, pre.password).then((byMaster) => setOpened((o) => o && { ...o, byMaster }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
   const hasMaster = !!s.prefs.masterCheck;
   // Locking (again) uses the master password: asked here unless the card was just unlocked with it.
@@ -140,6 +149,8 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           return;
         }
         noteLock = await lockNote(text, password);
+        // It was open on the card: keep it open there with the saved text.
+        if (pre && target.card) setOpenNote(target.card.id, { lock: noteLock, text, password });
       }
     }
     const data = {

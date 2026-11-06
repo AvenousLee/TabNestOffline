@@ -7,6 +7,7 @@ import { endDrag, startDrag } from './dnd';
 import { Icon } from './icons';
 import { UnlockDialog } from './UnlockDialog';
 import { onAutoHide } from './autoHide';
+import { closeOpenNote, getOpenNote, setOpenNote } from './openNotes';
 
 export function Favicon({ url, fallback, title }: { url: string; fallback?: string; title: string }) {
   const [broken, setBroken] = useState(false);
@@ -30,21 +31,29 @@ const stop = (e: React.SyntheticEvent) => {
 
 /** The description: shown, folded away until clicked, or locked with a password. */
 function CardNote({ card }: { card: Card }) {
-  const [show, setShow] = useState(false);
+  // Still open from before (e.g. its editor just saved a change to it): stay open.
+  const [pre] = useState(() => getOpenNote(card.id, card.noteLock));
+  const [show, setShow] = useState(!!pre);
   const [asking, setAsking] = useState(false);
   // A locked description is asked for every time: its text is kept only while it is open.
-  const [unlocked, setUnlocked] = useState<string>();
+  const [unlocked, setUnlocked] = useState<string | undefined>(pre?.text);
   const text = card.noteLock ? unlocked : card.note;
+  const close = () => {
+    setShow(false);
+    setUnlocked(undefined);
+    closeOpenNote(card.id, card.noteLock);
+  };
   // Close again after a while without use (Settings → General), like a screen lock.
   useEffect(
     () =>
       onAutoHide(() => {
-        setShow(false);
-        setUnlocked(undefined);
+        close();
         setAsking(false);
       }),
-    [],
+    [], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // Leaving the space (or the card going away) closes it too.
+  useEffect(() => () => closeOpenNote(card.id, card.noteLock), [card.id, card.noteLock]);
   const privateNote = !!card.noteLock || !!card.noteHidden;
 
   if (privateNote && !(show && text)) {
@@ -71,8 +80,10 @@ function CardNote({ card }: { card: Card }) {
               <UnlockDialog
                 title={card.title}
                 lock={card.noteLock}
-                onUnlocked={(t) => {
+                onUnlocked={(t, password) => {
                   setUnlocked(t);
+                  // Its editor can now show the text without asking again.
+                  setOpenNote(card.id, { lock: card.noteLock!, text: t, password });
                   setAsking(false);
                   setShow(true);
                 }}
@@ -96,8 +107,7 @@ function CardNote({ card }: { card: Card }) {
           title={card.noteLock ? 'Lock it again' : 'Hide it again'}
           onClick={(e) => {
             stop(e);
-            setShow(false);
-            setUnlocked(undefined);
+            close();
           }}
         >
           <Icon name={card.noteLock ? 'lock' : 'eyeOff'} size={12} />
