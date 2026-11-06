@@ -4,14 +4,14 @@ import { useStore } from '../../store/store';
 import { requestHostAccess } from '../../browser/tabs';
 import { isSafeImage } from '../../lib/spaceFile';
 import { dataUrlBytes, fetchPreviewImage, shrinkImage } from '../../lib/image';
-import { isMasterPassword, lockNote } from '../../lib/lock';
+import { isMasterPassword, lockNote, unlockNote } from '../../lib/lock';
 import { Field, Modal } from '../Modal';
 import { Icon } from '../icons';
 import type { CardTarget } from '../SpaceView';
 import { UnlockDialog } from '../UnlockDialog';
 import { MasterPasswordDialog } from '../MasterPasswordDialog';
 import { onAutoHide } from '../autoHide';
-import { getOpenNote, setOpenNote } from '../openNotes';
+import { dropDraft, getDraft, getOpenNote, setDraft, setOpenNote } from '../openNotes';
 
 /** Spaces bigger than this sync noticeably slower; warn when pictures push past it. */
 const BIG_SPACE_BYTES = 3_000_000;
@@ -24,7 +24,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const s = useStore();
   const [title, setTitle] = useState(target.card?.title ?? '');
   const [url, setUrl] = useState(target.card?.url ?? '');
-  const [lock0, setLock0] = useState(target.card?.noteLock);
+  const lock0 = target.card?.noteLock;
   // A locked description must be unlocked (password asked every time) to be read or changed.
   // Already unlocked on the card: no need to ask again here.
   const [pre] = useState(() => (target.card ? getOpenNote(target.card.id, target.card.noteLock) : undefined));
@@ -35,8 +35,8 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
   const [master, setMaster] = useState('');
   const [lockError, setLockError] = useState('');
-  // Left open too long: lock the description again, like a screen lock. A changed description is
-  // saved first (encrypted with the password it was unlocked with); other unsaved changes stay in the form.
+  // Left open too long: lock the description again, like a screen lock. Changes to it are kept as an
+  // encrypted draft (not saved) and come back on the next unlock; other unsaved changes stay in the form.
   const live = useRef({ opened, note });
   live.current = { opened, note };
   useEffect(
@@ -54,14 +54,31 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           setLockError('Locked again after a while without use. Unlock to see or change it.');
           return;
         }
-        void lockNote(text, o.password).then((noteLock) => {
-          s.updateCard(target.spaceId, target.colId, card.id, { noteLock, note: undefined, noteHidden: undefined });
-          setLock0(noteLock);
-          setLockError('Your changes to the description were saved, then it was locked again after a while without use.');
+        void lockNote(text, o.password).then((draftLock) => {
+          if (lock0) setDraft(card.id, { basedOn: lock0, draftLock });
+          setRestored(undefined);
+          setLockError('Locked again after a while without use. Your unsaved changes are kept: unlock to continue, then Save or discard them.');
         });
       }),
     [], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // The saved text, while a draft of unsaved changes is shown instead (for "Discard changes").
+  const [restored, setRestored] = useState<string>();
+  /** Show the unlocked text, or the draft of unsaved changes kept from before the last auto-lock. */
+  const showUnlocked = (text: string, password: string) => {
+    setOpened({ text, password });
+    setNote(text);
+    const d = target.card && getDraft(target.card.id, lock0);
+    if (d)
+      void unlockNote(d.draftLock, password).then((draft) => {
+        setNote(draft);
+        setRestored(text);
+      }, () => undefined);
+  };
+  useEffect(() => {
+    if (pre) showUnlocked(pre.text, pre.password);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const sealed = !!lock0 && !opened; // locked and not unlocked: the text can't be shown or changed
   const hasMaster = !!s.prefs.masterCheck;
   // Locking (again) uses the master password: asked here unless the card was just unlocked with it.
@@ -170,7 +187,10 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
       noteHidden: privacy === 'hidden' && text ? true : undefined,
       image: (withPicture && image) || undefined,
     };
-    if (target.card) s.updateCard(target.spaceId, target.colId, target.card.id, data);
+    if (target.card) {
+      s.updateCard(target.spaceId, target.colId, target.card.id, data);
+      dropDraft(target.card.id);
+    }
     else s.addCard(target.spaceId, target.colId, data);
     const space = useStore.getState().spaces.find((sp) => sp.id === target.spaceId);
     if (withPicture && image.startsWith('data:') && space && JSON.stringify(space).length > BIG_SPACE_BYTES) {
@@ -222,6 +242,23 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
             <textarea rows={3} maxLength={NOTE_MAX} value={note} onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))} />
           </Field>
         )}
+        {restored !== undefined && !sealed && (
+          <div className="status-line warn">
+            Your unsaved changes from before the auto-lock are back. Save to keep them, or{' '}
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => {
+                setNote(restored);
+                setRestored(undefined);
+                if (target.card) dropDraft(target.card.id);
+              }}
+            >
+              discard them
+            </button>
+            .
+          </div>
+        )}
         <div className="field">
           <span className="field-label">Who can read the description</span>
           <div className="seg">
@@ -266,9 +303,9 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           lock={lock0}
           onUnlocked={(text, password) => {
             // Saving locks it again with this same password, without asking twice.
-            setOpened({ text, password });
-            setNote(text);
+            showUnlocked(text, password);
             setUnlocking(false);
+            setLockError('');
           }}
           onClose={() => setUnlocking(false)}
         />
