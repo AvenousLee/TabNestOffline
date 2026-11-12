@@ -503,3 +503,9 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 /* Dragging cards: the card being moved fades; a collection highlights when a drop would add it at the end */
 .card.dragging { opacity: 0.35; }
 .collection.card-drop { box-shadow: inset 0 0 0 2px var(--accent); border-radius: var(--radius); }
+/* Settings → About: updates */
+.updates { margin-top: 16px; padding-top: 4px; border-top: 1px solid var(--line); }
+.update-box { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 10px; }
+.update-box ol { margin: 8px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.update-box a { color: var(--accent-hover); }
+.update-notes { white-space: pre-line; font-size: 12.5px; margin: 8px 0 0; color: var(--muted); }

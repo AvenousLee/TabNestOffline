@@ -51,6 +51,7 @@ Always load the same folder: Chrome ties TabNest's saved data to it.
 | `npm run build` | Type-checks and builds the extension into `dist/`. |
 | `npm test` | Unit tests (sync and merge, sharing, calendars, encryption, backup, …). |
 | `npm run icons` | Regenerates the PNG icons. |
+| `npm run release` | Builds and packs `release/TabNest-v<version>.zip` for a GitHub release (see below). |
 
 ## Using it
 
@@ -85,7 +86,7 @@ Always load the same folder: Chrome ties TabNest's saved data to it.
 | Calendar | Calendar on/off, Google sign-in on/off with its setup guide, client ID, accounts, linked calendars |
 | Git sync | Your Git repositories |
 | Backup & restore | Download a backup of everything, or restore one |
-| About TabNest | Version, credits, source code link |
+| About TabNest | Version, credits, source code link, **Check for updates** |
 
 ## Private card descriptions
 
@@ -212,6 +213,22 @@ Secrets (Git tokens, webmail passwords, iCal links) are only included if you tic
 them. Downloaded calendar events and Google sign-ins are never included (they're fetched again; sign in to Google again after restoring).
 Locked descriptions stay encrypted in the file.
 
+## Updating, and releasing a new version
+
+**Users:** *Settings → About TabNest → Check for updates* compares the installed version with the latest release on GitHub.
+If there's a newer one it offers the zip; unzip it over the folder TabNest is loaded from (always the same folder: Chrome keeps
+the data with it), then click **Reload TabNest**. An unpacked extension can't replace its own files, so this last step is manual;
+store installs would update by themselves.
+
+**Developer:** to publish version *x.y.z*:
+
+1. Set `"version": "x.y.z"` in `public/manifest.json` (and in `package.json`).
+2. `npm run release` → makes `release/TabNest-vx.y.z.zip` (files at the top level, ready to unzip over an install).
+3. Commit and push, then on GitHub: **Releases → Draft a new release**, tag `vx.y.z`, attach the zip, write what changed, **Publish**.
+
+The check reads `https://api.github.com/repos/<owner>/<repo>/releases/latest` (the repository in `src/about.ts`), so the
+repository must be public, and the release must not be a draft or pre-release.
+
 ## Privacy and security
 
 - Everything is stored in the browser's local extension storage. Nothing is sent anywhere except the git servers,
@@ -240,6 +257,8 @@ Locked descriptions stay encrypted in the file.
 | `src/calendar/` | Calendar data: iCal reader, Google Calendar API and sign-in, CalDAV (webmail), agenda, store |
 | `src/lib/lock.ts` | Encryption of password-protected descriptions, master password check |
 | `src/lib/backup.ts` | Backup file: what's included, secrets, reading it back |
+| `src/lib/updates.ts` | "Check for updates": latest GitHub release, version comparison |
+| `scripts/release.mjs` | `npm run release`: packs the build as the release zip |
 | `src/lib/spaceFile.ts` | The space file format (what syncs and is shared) |
 | `src/about.ts` | Credits shown in *Settings → About TabNest* |
 | `src/browser/tabs.ts` | All Chrome tab/permission calls. Port this one file to support Edge or Firefox |

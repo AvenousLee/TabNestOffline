@@ -8,6 +8,7 @@ import { loadEverything, replaceEverything } from '../storage/storage';
 import { backupFileName, describeBackup, makeBackup, readBackup } from '../lib/backup';
 import { downloadText } from '../share/share';
 import { ABOUT, appVersion } from '../about';
+import { compareVersions, latestRelease, type Release } from '../lib/updates';
 import { Field } from './Modal';
 import { MasterPasswordDialog, type MasterMode } from './MasterPasswordDialog';
 import { AUTO_HIDE_CHOICES, autoHideMinutes, autoHideOnLeave } from './autoHide';
@@ -427,6 +428,83 @@ function AboutSection() {
           Source code on GitHub
         </a>
       </div>
+      <UpdatesBox />
     </Section>
+  );
+}
+
+/** "Check for updates": compares this copy with the latest release on GitHub. */
+function UpdatesBox() {
+  const current = appVersion();
+  const [state, setState] = useState<{ busy?: boolean; error?: string; release?: Release | null; checked?: boolean }>({});
+  const check = async () => {
+    setState({ busy: true });
+    try {
+      setState({ release: await latestRelease(), checked: true });
+    } catch (e) {
+      setState({ error: e instanceof Error ? e.message : String(e) });
+    }
+  };
+  const r = state.release;
+  const newer = !!r && current !== 'dev' && compareVersions(r.version, current) > 0;
+  const canReload = typeof chrome !== 'undefined' && !!chrome.runtime?.reload;
+
+  return (
+    <div className="updates">
+      <h3>Updates</h3>
+      <div className="row-actions">
+        <button className="btn" disabled={state.busy} onClick={() => void check()}>
+          <Icon name="sync" className={state.busy ? 'spin' : ''} /> {state.busy ? 'Checking…' : 'Check for updates'}
+        </button>
+        {canReload && (
+          <button className="btn ghost" onClick={() => chrome.runtime.reload()} title="Restart TabNest to use the files in its folder">
+            Reload TabNest
+          </button>
+        )}
+      </div>
+      {state.error && <div className="status-line err">Couldn’t check: {state.error}</div>}
+      {state.checked && r === null && <div className="status-line ok">No release has been published yet. You have version {current}.</div>}
+      {state.checked && r && !newer && (
+        <div className="status-line ok">
+          You have the latest version ({current}
+          {current === 'dev' ? `; the latest release is ${r.version}` : ''}).
+        </div>
+      )}
+      {newer && r && (
+        <div className="update-box">
+          <b>
+            Version {r.version} is available
+          </b>{' '}
+          <span className="muted small">(you have {current})</span>
+          {r.notes && <p className="update-notes">{r.notes.length > 600 ? `${r.notes.slice(0, 600)}…` : r.notes}</p>}
+          <ol className="small">
+            <li>
+              {r.zipUrl ? (
+                <a href={r.zipUrl} target="_blank" rel="noreferrer">
+                  Download TabNest {r.version} (.zip)
+                </a>
+              ) : (
+                <a href={r.pageUrl} target="_blank" rel="noreferrer">
+                  Open the release page
+                </a>
+              )}
+              .
+            </li>
+            <li>
+              Unzip it <b>into the same folder</b> TabNest is loaded from now, replacing the old files (Chrome keeps your spaces with that folder; a
+              different folder starts empty).
+            </li>
+            <li>Click <b>Reload TabNest</b> above (or ↻ on TabNest in chrome://extensions).</li>
+          </ol>
+          <a className="small" href={r.pageUrl} target="_blank" rel="noreferrer">
+            Release notes on GitHub
+          </a>
+        </div>
+      )}
+      <p className="muted small">
+        TabNest can’t replace its own files: Chrome only lets store installs update by themselves. Download a backup first if you’re unsure
+        (Backup &amp; restore).
+      </p>
+    </div>
   );
 }

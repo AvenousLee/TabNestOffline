@@ -150,10 +150,16 @@ when others import or re-share it (they show up as "Shared by"), so anyone holdi
    This replaces whatever is in TabNest there.
 3. Sign in to your Google accounts again (Calendar → **Sign in again** next to each account). Locked descriptions open with the same password.
 
-## 6. Updating to a newer build
+## 6. Updating to a newer version
 
-1. Replace the extension folder's contents with the new build (or run `npm run build` if you load `dist`).
-2. Go to `chrome://extensions` → click ↻ (reload) on TabNest. Your spaces are kept.
+1. **Settings → About TabNest → Check for updates.** It compares your version with the latest release on GitHub.
+2. If a newer version is available, click **Download TabNest x.y.z (.zip)**.
+3. Unzip it **into the same folder** TabNest is loaded from now, replacing the old files. Use the same folder every time:
+   Chrome keeps your spaces with that folder, and a different folder starts empty.
+4. Click **Reload TabNest** (in the same place), or ↻ on TabNest in `chrome://extensions`. Your spaces are kept.
+
+TabNest can't replace its own files (Chrome only lets store installs update by themselves), so steps 3 and 4 are yours.
+If you build from the source instead, run `npm run build` and reload.
 
 ## If something goes wrong
 
