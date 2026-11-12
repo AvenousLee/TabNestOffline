@@ -490,3 +490,10 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .danger-zone > div { flex: 1; min-width: 200px; }
 .danger-zone p { margin: 2px 0 0; }
 .tab-panel { min-height: 330px; }
+/* Space colour: any colour via picker or code */
+.custom-swatch { position: relative; display: inline-flex; align-items: center; justify-content: center; color: #fff; overflow: hidden; box-sizing: border-box; }
+.custom-swatch input[type='color'] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; padding: 0; border: 0; cursor: pointer; }
+.custom-swatch svg { filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.6)); pointer-events: none; }
+.color-code { display: flex; align-items: center; gap: 8px; margin-top: 8px; max-width: 220px; }
+.color-preview { width: 22px; height: 22px; border-radius: 6px; flex: none; border: 1px solid var(--line); }
+.color-code input.invalid { border-color: var(--err); }

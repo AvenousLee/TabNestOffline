@@ -3,6 +3,7 @@ import type { ShareSettings, Space, SyncConfig, UpdatePolicy } from '../../types
 import { defaultSpaceId, SPACE_COLORS, useStore } from '../../store/store';
 import { requestHostAccess } from '../../browser/tabs';
 import { slugify } from '../../lib/util';
+import { parseColor } from '../../lib/colors';
 import { resolveCheckUrl } from '../../share/share';
 import { Field, Modal } from '../Modal';
 import { RemoteForm } from './RemotesDialog';
@@ -32,6 +33,13 @@ export function SpaceSettingsDialog({ space, initialTab = 'general', onClose }: 
   const t = space.sync?.target;
   const [name, setName] = useState(space.name);
   const [color, setColor] = useState(space.color);
+  // Colour code box: any hex or rgb() value; the colour follows once it can be read.
+  const [code, setCode] = useState(space.color);
+  const codeOk = parseColor(code) !== null;
+  const pickColor = (c: string) => {
+    setColor(c);
+    setCode(c);
+  };
   const [mode, setMode] = useState<Mode>(t?.type ?? 'off');
   const [remoteId, setRemoteId] = useState(t?.type === 'repo' ? t.remoteId : (s.remotes[0]?.id ?? ''));
   const [path, setPath] = useState(t?.type === 'repo' ? t.path : `spaces/${slugify(space.name)}.json`);
@@ -110,16 +118,37 @@ export function SpaceSettingsDialog({ space, initialTab = 'general', onClose }: 
       <div className="tab-panel">
         {tab === 'general' && (
           <>
-            <Field label="Name">
-              <input value={name} onChange={(e) => setName(e.target.value)} />
-            </Field>
-            <Field label="Colour">
-              <div className="swatches">
-                {SPACE_COLORS.map((c) => (
-                  <button key={c} className={`swatch${c === color ? ' on' : ''}`} style={{ background: c }} onClick={() => setColor(c)} aria-label={c} />
-                ))}
-              </div>
-            </Field>
+            <div className="row">
+              <Field label="Name">
+                <input value={name} onChange={(e) => setName(e.target.value)} />
+              </Field>
+              <Field label="Colour" hint={codeOk ? 'Pick one, use the colour picker, or type a code: #3a7bd5 or rgb(58, 123, 213).' : 'Use a code like #3a7bd5, #37d or rgb(58, 123, 213).'}>
+                <div className="swatches">
+                  {SPACE_COLORS.map((c) => (
+                    <button key={c} className={`swatch${c === color ? ' on' : ''}`} style={{ background: c }} onClick={() => pickColor(c)} aria-label={c} />
+                  ))}
+                  <label className={`swatch custom-swatch${SPACE_COLORS.includes(color) ? '' : ' on'}`} style={{ background: color }} title="Choose any colour">
+                    <input type="color" value={color} onChange={(e) => pickColor(e.target.value)} aria-label="Choose any colour" />
+                    <Icon name="plus" size={12} />
+                  </label>
+                </div>
+                <div className="color-code">
+                  <span className="color-preview" style={{ background: color }} />
+                  <input
+                    value={code}
+                    onChange={(e) => {
+                      setCode(e.target.value);
+                      const c = parseColor(e.target.value);
+                      if (c) setColor(c);
+                    }}
+                    onBlur={() => codeOk || setCode(color)}
+                    className={codeOk ? '' : 'invalid'}
+                    spellCheck={false}
+                    aria-label="Colour code"
+                  />
+                </div>
+              </Field>
+            </div>
             <Field
               label="Default space"
               hint={
