@@ -77,6 +77,8 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
+  /** Show the new password and its repeat as plain text, to check them before saving. */
+  const [showNew, setShowNew] = useState(false);
   const [choices, setChoices] = useState<Choice[]>(() => (mode === 'reset' ? resetChoices(s.prefs.recoveryIcons) : fromPool()));
   const [icon, setIcon] = useState('');
   const [own, setOwn] = useState('');
@@ -258,12 +260,18 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
         {needsNext && (mode !== 'reset' || hasRecovery) && (
           <div className="row">
             <Field label={mode === 'set' ? 'Master password' : 'New master password'} hint={`At least ${MIN_MASTER} characters.`}>
-              <input type="password" autoFocus={!needsCurrent && mode !== 'reset'} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
+              <input type={showNew ? 'text' : 'password'} autoFocus={!needsCurrent && mode !== 'reset'} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" spellCheck={false} />
             </Field>
             <Field label="Type it again" hint={again && next !== again ? 'The passwords don’t match.' : undefined}>
-              <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" />
+              <input type={showNew ? 'text' : 'password'} value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" spellCheck={false} />
             </Field>
           </div>
+        )}
+        {needsNext && (mode !== 'reset' || hasRecovery) && (
+          <label className="check" style={{ marginTop: -4 }}>
+            <input type="checkbox" checked={showNew} onChange={(e) => setShowNew(e.target.checked)} />
+            Show password
+          </label>
         )}
 
         {mode !== 'reset' && recoveryFields}
