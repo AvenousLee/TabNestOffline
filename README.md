@@ -17,15 +17,18 @@ No TabNest server: everything stays in your browser, your git repositories and y
 
 ## Screenshots
 
-**Spaces, collections and cards.** Drag tabs in from the right; each space can sync to its own repo.
+**Spaces, collections and cards.** Drag tabs in from the right; each space can sync to its own repo. The 🏠 marks the
+default space, and descriptions can be hidden or locked with a password.
 
 ![Spaces and cards](docs/screenshots/1-spaces.jpg)
 
-| Card editor (optional picture, 500-character description) | Share as an HTML file or PDF |
+| Card editor: who can read the description | Share as an HTML file or PDF |
 | --- | --- |
 | ![Card editor](docs/screenshots/2-card-editor.jpg) | ![Share dialog](docs/screenshots/3-share.jpg) |
-| **Merge both** when a space changed on two devices | A shared file opened without the extension |
-| ![Merge conflict](docs/screenshots/4-merge.jpg) | ![Shared HTML file](docs/screenshots/5-shared-file.jpg) |
+| **Calendar**: linked calendars and your Google accounts | **Settings**: profile, default space, master password, … |
+| ![Calendar](docs/screenshots/6-calendar.jpg) | ![Settings](docs/screenshots/7-settings.jpg) |
+| A shared file opened without the extension | **Merge both** when a space changed on two devices |
+| ![Shared HTML file](docs/screenshots/5-shared-file.jpg) | ![Merge conflict](docs/screenshots/4-merge.jpg) |
 
 ## Install (developer mode)
 
