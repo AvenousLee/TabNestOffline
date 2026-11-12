@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import type { ShareSettings, Space, SyncConfig, UpdatePolicy } from '../../types';
-import { SPACE_COLORS, useStore } from '../../store/store';
+import { defaultSpaceId, SPACE_COLORS, useStore } from '../../store/store';
 import { requestHostAccess } from '../../browser/tabs';
 import { slugify } from '../../lib/util';
 import { resolveCheckUrl } from '../../share/share';
 import { Field, Modal } from '../Modal';
 import { RemoteForm } from './RemotesDialog';
+import { Icon } from '../icons';
 
 type Mode = 'off' | 'repo' | 'url';
 
@@ -34,6 +35,11 @@ export function SpaceSettingsDialog({ space, onClose }: { space: Space; onClose:
   const [policy, setPolicy] = useState<UpdatePolicy>(space.sync?.policy ?? 'ask');
   const [autoPush, setAutoPush] = useState(space.sync?.autoPush ?? true);
   const [share, setShare] = useState<ShareSettings>(space.share);
+  // Default space (opens in new tabs). The first space is the default when none is chosen,
+  // so for it the box can only be unticked by choosing another space.
+  const wasDefault = defaultSpaceId(s.spaces, s.prefs) === space.id;
+  const chosenDefault = s.prefs.startSpaceId === space.id;
+  const [isDefault, setIsDefault] = useState(wasDefault);
 
   const sameTarget = (a: SyncConfig['target'] | undefined, b: SyncConfig['target']) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -53,6 +59,7 @@ export function SpaceSettingsDialog({ space, onClose }: { space: Space; onClose:
     const newName = name.trim() || space.name;
     if (newName !== space.name || color !== space.color) s.updateSpaceMeta(space.id, { name: newName, color });
     s.updateSpaceSettings(space.id, { sync, share });
+    if (isDefault !== wasDefault) s.savePrefs({ ...useStore.getState().prefs, startSpaceId: isDefault ? space.id : undefined });
     onClose();
     if (sync) void s.syncNow(space.id, true);
   };
@@ -103,6 +110,19 @@ export function SpaceSettingsDialog({ space, onClose }: { space: Space; onClose:
               <button key={c} className={`swatch${c === color ? ' on' : ''}`} style={{ background: c }} onClick={() => setColor(c)} aria-label={c} />
             ))}
           </div>
+        </Field>
+        <Field
+          label="Default space"
+          hint={
+            wasDefault && !chosenDefault
+              ? 'It’s the default because it’s first in the list. To change that, make another space the default (or move it down).'
+              : 'Every new tab opens on the default space.'
+          }
+        >
+          <label className="check" style={{ margin: 0 }}>
+            <input type="checkbox" checked={isDefault} disabled={wasDefault && !chosenDefault} onChange={(e) => setIsDefault(e.target.checked)} />
+            <Icon name="home" size={14} /> Open this space in every new tab
+          </label>
         </Field>
       </div>
 

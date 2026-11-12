@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { useStore } from '../store/store';
+import { defaultSpaceId, useStore } from '../store/store';
 import { acceptsDrop, draggingKind, endDrag, readDrop, reorderIndex, startDrag } from './dnd';
 import { Icon } from './icons';
+import { InlineEdit } from './InlineEdit';
 import { followsOthers } from '../sync/engine';
 
 export function Sidebar({
@@ -37,7 +38,9 @@ export function Sidebar({
   }, [collapsed, onToggle]);
 
   // The space new tabs open on: the one chosen in Settings, else the first.
-  const defaultId = (s.spaces.find((x) => x.id === s.prefs.startSpaceId) ?? s.spaces[0])?.id;
+  const defaultId = defaultSpaceId(s.spaces, s.prefs);
+  // Space being renamed from its ⋯ menu (the row turns into a text box).
+  const [renaming, setRenaming] = useState<string | null>(null);
 
   const onDrop = (e: React.DragEvent, spaceId: string, index: number) => {
     e.preventDefault();
@@ -119,43 +122,58 @@ export function Sidebar({
           const isDefault = space.id === defaultId;
           return (
             <div key={space.id} className="space-row">
-              <button
-                className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over?.id === space.id ? (over.at === 'into' ? ' over' : ` drop-${over.at}`) : ''}`}
-                onClick={() => s.setActive(space.id)}
-                draggable
-                onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
-                onDragEnd={endDrag}
-                onDragOver={(e) => {
-                  if (!acceptsDrop(e, ['space', 'card', 'tab', 'collection'])) return;
-                  e.preventDefault();
-                  if (draggingKind() === 'space') {
-                    // Upper half: drop above this space; lower half: below it.
-                    const r = e.currentTarget.getBoundingClientRect();
-                    e.dataTransfer.dropEffect = 'move';
-                    setOver({ id: space.id, at: e.clientY < r.top + r.height / 2 ? 'before' : 'after' });
-                  } else setOver({ id: space.id, at: 'into' });
-                }}
-                onDragLeave={() => setOver(null)}
-                onDrop={(e) => onDrop(e, space.id, i)}
-                title={collapsed ? space.name : 'Drag to change the order'}
-              >
-                <span className="space-dot" style={{ background: space.color }}>
-                  {space.name.charAt(0).toUpperCase()}
-                </span>
-                <span className="space-label">{space.name}</span>
-                {isDefault && (
-                  <span className="default-mark" title="Default space: opens in new tabs">
-                    <Icon name="home" size={12} />
+              {renaming === space.id && !collapsed ? (
+                <div className="space-item renaming">
+                  <span className="space-dot" style={{ background: space.color }}>
+                    {space.name.charAt(0).toUpperCase()}
                   </span>
-                )}
-                {space.sync && (
-                  <span className={`sync-mark${space.sync.lastError ? ' err' : ''}`} title={space.sync.lastError ?? 'Synced with git'}>
-                    <Icon name={space.sync.target.type === 'repo' ? 'git' : 'link'} size={12} />
+                  <InlineEdit
+                    className="space-label"
+                    value={space.name}
+                    editing
+                    onEditingChange={(on) => !on && setRenaming(null)}
+                    onSave={(name) => s.updateSpaceMeta(space.id, { name })}
+                  />
+                </div>
+              ) : (
+                <button
+                  className={`space-item${space.id === s.activeSpaceId && s.page === 'space' && !s.query ? ' active' : ''}${over?.id === space.id ? (over.at === 'into' ? ' over' : ` drop-${over.at}`) : ''}`}
+                  onClick={() => s.setActive(space.id)}
+                  draggable
+                  onDragStart={(e) => startDrag(e, { kind: 'space', spaceId: space.id })}
+                  onDragEnd={endDrag}
+                  onDragOver={(e) => {
+                    if (!acceptsDrop(e, ['space', 'card', 'tab', 'collection'])) return;
+                    e.preventDefault();
+                    if (draggingKind() === 'space') {
+                      // Upper half: drop above this space; lower half: below it.
+                      const r = e.currentTarget.getBoundingClientRect();
+                      e.dataTransfer.dropEffect = 'move';
+                      setOver({ id: space.id, at: e.clientY < r.top + r.height / 2 ? 'before' : 'after' });
+                    } else setOver({ id: space.id, at: 'into' });
+                  }}
+                  onDragLeave={() => setOver(null)}
+                  onDrop={(e) => onDrop(e, space.id, i)}
+                  title={collapsed ? space.name : 'Drag to change the order'}
+                >
+                  <span className="space-dot" style={{ background: space.color }}>
+                    {space.name.charAt(0).toUpperCase()}
                   </span>
-                )}
-                {pending && <span className="badge" title="Update waiting" />}
-              </button>
-              {!collapsed && <SpaceMenu spaceId={space.id} isDefault={isDefault} />}
+                  <span className="space-label">{space.name}</span>
+                  {isDefault && (
+                    <span className="default-mark" title="Default space: opens in new tabs">
+                      <Icon name="home" size={12} />
+                    </span>
+                  )}
+                  {space.sync && (
+                    <span className={`sync-mark${space.sync.lastError ? ' err' : ''}`} title={space.sync.lastError ?? 'Synced with git'}>
+                      <Icon name={space.sync.target.type === 'repo' ? 'git' : 'link'} size={12} />
+                    </span>
+                  )}
+                  {pending && <span className="badge" title="Update waiting" />}
+                </button>
+              )}
+              {!collapsed && renaming !== space.id && <SpaceMenu spaceId={space.id} isDefault={isDefault} onRename={() => setRenaming(space.id)} />}
             </div>
           );
         })}
@@ -185,7 +203,7 @@ export function Sidebar({
 }
 
 /** ⋯ next to a space: make it the default space (the one new tabs open on). */
-function SpaceMenu({ spaceId, isDefault }: { spaceId: string; isDefault: boolean }) {
+function SpaceMenu({ spaceId, isDefault, onRename }: { spaceId: string; isDefault: boolean; onRename: () => void }) {
   const s = useStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -209,6 +227,9 @@ function SpaceMenu({ spaceId, isDefault }: { spaceId: string; isDefault: boolean
       </button>
       {open && (
         <div className="cal-menu space-menu">
+          <button onClick={() => (setOpen(false), onRename())}>
+            <Icon name="edit" size={14} /> Rename
+          </button>
           {isDefault ? (
             <p className="muted small">
               <Icon name="home" size={12} /> Default space: opens in new tabs

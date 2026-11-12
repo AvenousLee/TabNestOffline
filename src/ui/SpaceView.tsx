@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Card, Space } from '../types';
-import { useStore } from '../store/store';
+import { defaultSpaceId, useStore } from '../store/store';
 import { relativeTime } from '../lib/util';
 import { isReadOnly } from '../sync/engine';
 import { KIND_NAMES } from '../sync/providers';
@@ -53,6 +53,11 @@ export function SpaceView({
       <header className="space-head">
         <span className="space-dot big" style={{ background: space.color }} />
         <InlineEdit className="space-name" value={space.name} onSave={(name) => s.updateSpaceMeta(space.id, { name })} />
+        {defaultSpaceId(s.spaces, s.prefs) === space.id && (
+          <span className="default-badge" title="Default space: opens in every new tab">
+            <Icon name="home" size={13} /> Default
+          </span>
+        )}
         <span className="meta">
           {space.collections.length} Collections
           <span className="sep" />

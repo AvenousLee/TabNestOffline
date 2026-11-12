@@ -174,7 +174,7 @@ export const useStore = create<State>()((set, get) => {
         activeSpaceId:
           s.ready && snap.spaces.some((x) => x.id === s.activeSpaceId)
             ? s.activeSpaceId
-            : (snap.spaces.find((x) => x.id === snap.prefs.startSpaceId) ?? snap.spaces[0])?.id,
+            : defaultSpaceId(snap.spaces, snap.prefs),
       }));
     },
 
@@ -517,3 +517,6 @@ export const useStore = create<State>()((set, get) => {
 });
 
 export const activeSpace = (s: State): Space | undefined => s.spaces.find((x) => x.id === s.activeSpaceId) ?? s.spaces[0];
+
+/** The space new tabs open on: the one chosen as default, else the first. */
+export const defaultSpaceId = (spaces: Space[], prefs: Prefs): string | undefined => (spaces.find((x) => x.id === prefs.startSpaceId) ?? spaces[0])?.id;
