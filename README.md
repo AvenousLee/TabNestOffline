@@ -102,10 +102,10 @@ Opened descriptions close again by themselves after a chosen time without mouse 
 optionally, when you leave the tab. If that happens while you're editing one, your changes are kept as an encrypted draft and come
 back the next time you unlock it.
 
-TabNest never stores the master password itself, only a check value made with it. When you set it you also pick a **recovery picture**
-(one of 24) and type a **recovery word**, plus an optional hint. If you forget the password, **Forgot the master password?** shows
-your hint; choosing the right picture and typing the word lets you set a new one (locked descriptions are re-locked with it). Without the
-password or the picture + word, nobody can open locked descriptions.
+TabNest never stores the master password itself, only a check value made with it. When you set it you also write a **secret question** and its answer,
+your **secret words** (at least two words), and pick a **picture** (one of six shown, or your own emoji). If you forget the password,
+**Forgot the master password?** shows your question; typing the secret words and picking your picture among six lets you set a new one
+(locked descriptions are re-locked with it). Without the password or the picture + secret words, nobody can open locked descriptions.
 Changing the master password re-locks every description locked with the old one.
 
 ## Calendar
@@ -241,7 +241,7 @@ repository must be public, and the release must not be a draft or pre-release.
   read them, so use tokens scoped to the one repo.
 - Google sign-in gives TabNest a short-lived token (about an hour), renewed while you're signed in to Google in the browser.
 - Password-protected descriptions are encrypted before they're stored, synced or shared; the master password is never stored
-  (only encrypted with your recovery picture + word, on this device).
+  (only encrypted with your recovery picture + secret words, on this device).
 - Shared HTML files contain space and collection names, links, titles, descriptions (hidden ones too, locked ones only encrypted),
   pictures and site icons. PDFs leave hidden and locked descriptions out.
 - Favicons come from Chrome's own cache (no third-party service).

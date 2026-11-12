@@ -49,46 +49,62 @@ const CHECK_TEXT = 'tabnest-master-password';
 /** The value saved in settings to recognise the master password later (not the password itself). */
 export const makeMasterCheck = (password: string) => lockNote(CHECK_TEXT, password);
 
-// Recovery: a picture (1 of 24) and a recovery word, chosen with the master password.
-// Together they unlock a copy of the master password kept in settings, so a forgotten
-// master password can be replaced. They are as strong as the word is hard to guess.
+// Recovery: a picture (one of six shown, or the user's own emoji), secret words and a secret question,
+// chosen with the master password. The picture + secret words unlock a copy of the master password
+// kept in settings, so a forgotten master password can be replaced. The question is shown to help
+// remember the secret words, which do the real protecting.
 
-export const RECOVERY_ICONS = [
-  { id: 'cat', emoji: '🐱', label: 'Cat' },
-  { id: 'sunflower', emoji: '🌻', label: 'Sunflower' },
-  { id: 'rocket', emoji: '🚀', label: 'Rocket' },
-  { id: 'balloon', emoji: '🎈', label: 'Balloon' },
-  { id: 'anchor', emoji: '⚓', label: 'Anchor' },
-  { id: 'clover', emoji: '🍀', label: 'Clover' },
-  // Added later: keep the ids above unchanged (they're part of saved recoveries).
-  { id: 'dog', emoji: '🐶', label: 'Dog' },
-  { id: 'fox', emoji: '🦊', label: 'Fox' },
-  { id: 'panda', emoji: '🐼', label: 'Panda' },
-  { id: 'owl', emoji: '🦉', label: 'Owl' },
-  { id: 'fish', emoji: '🐟', label: 'Fish' },
-  { id: 'butterfly', emoji: '🦋', label: 'Butterfly' },
-  { id: 'apple', emoji: '🍎', label: 'Apple' },
-  { id: 'pizza', emoji: '🍕', label: 'Pizza' },
-  { id: 'coffee', emoji: '☕', label: 'Coffee' },
-  { id: 'cake', emoji: '🎂', label: 'Cake' },
-  { id: 'tree', emoji: '🌳', label: 'Tree' },
-  { id: 'mountain', emoji: '⛰️', label: 'Mountain' },
-  { id: 'sun', emoji: '☀️', label: 'Sun' },
-  { id: 'moon', emoji: '🌙', label: 'Moon' },
-  { id: 'star', emoji: '⭐', label: 'Star' },
-  { id: 'umbrella', emoji: '☂️', label: 'Umbrella' },
-  { id: 'guitar', emoji: '🎸', label: 'Guitar' },
-  { id: 'football', emoji: '⚽', label: 'Football' },
-] as const;
-export const MIN_RECOVERY_WORD = 4;
+/** The six pictures of the first version (saved recoveries name them by id). */
+export const LEGACY_RECOVERY_ICONS: Record<string, string> = {
+  cat: '🐱',
+  sunflower: '🌻',
+  rocket: '🚀',
+  balloon: '🎈',
+  anchor: '⚓',
+  clover: '🍀',
+};
 
-/** Upper/lower case and spaces around the word don't matter. */
-const recoverySecret = (icon: string, word: string) => `tabnest-recovery:${icon}:${word.trim().toLowerCase()}`;
+/** Pictures the six choices are drawn from. */
+export const RECOVERY_POOL = [
+  '🐱', '🌻', '🚀', '🎈', '⚓', '🍀', '🐶', '🦊', '🐼', '🦉', '🐟', '🦋',
+  '🍎', '🍕', '☕', '🎂', '🌳', '⛰️', '☀️', '🌙', '⭐', '☂️', '🎸', '⚽',
+];
+export const RECOVERY_CHOICES = 6;
+export const MIN_SECRET_WORDS = 2;
+
+/** Six different pictures from the pool, in random order; `mine` (if any) is one of them. */
+export function pickRecoveryChoices(mine?: string, random: () => number = Math.random): string[] {
+  const pool = RECOVERY_POOL.filter((e) => !mine || iconKey(e) !== iconKey(mine));
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const six = pool.slice(0, mine ? RECOVERY_CHOICES - 1 : RECOVERY_CHOICES);
+  if (mine) six.splice(Math.floor(random() * RECOVERY_CHOICES), 0, mine);
+  return six;
+}
+
+/** The same picture with or without the emoji presentation mark. */
+const iconKey = (e: string) => e.replace(/\uFE0F/g, '');
+
+/** One emoji (a single picture character, maybe with skin tone etc.), or '' when it isn't one. */
+export function oneEmoji(text: string): string {
+  const t = text.trim();
+  if (!t) return '';
+  const parts = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(t)].map((p) => p.segment);
+  return parts.length === 1 && /\p{Extended_Pictographic}/u.test(parts[0]) ? parts[0] : '';
+}
+
+/** Secret words: upper/lower case and extra spaces don't matter. */
+export const normalWords = (words: string) => words.trim().toLowerCase().replace(/\s+/g, ' ');
+export const countWords = (words: string) => (normalWords(words) ? normalWords(words).split(' ').length : 0);
+
+const recoverySecret = (icon: string, words: string) => `tabnest-recovery:${iconKey(icon)}:${normalWords(words)}`;
 
 export interface Recovery {
-  /** The master password, encrypted with the picture + word. */
+  /** The master password, encrypted with the picture + secret words. */
   masterRecovery: string;
-  /** The picture + word, encrypted with the master password (to keep them when it changes). */
+  /** The picture + secret words, encrypted with the master password (to keep them when it changes). */
   recoveryByMaster: string;
 }
 
@@ -96,19 +112,20 @@ async function recoveryFor(secret: string, master: string): Promise<Recovery> {
   return { masterRecovery: await lockNote(master, secret), recoveryByMaster: await lockNote(secret, master) };
 }
 
-export const makeRecovery = (master: string, icon: string, word: string) => recoveryFor(recoverySecret(icon, word), master);
+/** `icon` is the emoji itself (or, for recoveries from the first version, its id such as 'rocket'). */
+export const makeRecovery = (master: string, icon: string, words: string) => recoveryFor(recoverySecret(icon, words), master);
 
-/** The master password, from the right picture and word. */
-export async function recoverMaster(masterRecovery: string | undefined, icon: string, word: string): Promise<string> {
-  if (!masterRecovery) throw new Error('No recovery picture and word were set up.');
+/** The master password, from the right picture and secret words. */
+export async function recoverMaster(masterRecovery: string | undefined, icon: string, words: string): Promise<string> {
+  if (!masterRecovery) throw new Error('No recovery picture and secret words were set up.');
   try {
-    return await unlockNote(masterRecovery, recoverySecret(icon, word));
+    return await unlockNote(masterRecovery, recoverySecret(icon, words));
   } catch {
-    throw new Error('That picture and word don’t match.');
+    throw new Error('That picture and secret words don’t match.');
   }
 }
 
-/** Keep the same picture and word when the master password changes. */
+/** Keep the same picture and secret words when the master password changes. */
 export async function moveRecovery(recoveryByMaster: string, oldMaster: string, newMaster: string): Promise<Recovery> {
   return recoveryFor(await unlockNote(recoveryByMaster, oldMaster), newMaster);
 }

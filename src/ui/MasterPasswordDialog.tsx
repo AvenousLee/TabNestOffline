@@ -1,24 +1,28 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
 import {
+  countWords,
   isMasterPassword,
+  LEGACY_RECOVERY_ICONS,
   makeMasterCheck,
   makeRecovery,
   MIN_MASTER,
-  MIN_RECOVERY_WORD,
+  MIN_SECRET_WORDS,
   moveRecovery,
+  normalWords,
+  oneEmoji,
+  pickRecoveryChoices,
   recoverMaster,
-  RECOVERY_ICONS,
   type Recovery,
 } from '../lib/lock';
 import { Field, Modal } from './Modal';
 import { Icon } from './icons';
 
 /**
- * set: a first master password (with recovery picture + word, and a hint).
+ * set: a first master password (with recovery picture, secret question and secret words).
  * change: a new one, knowing the current one (recovery is kept).
- * recovery: set up or replace the recovery picture + word and hint, knowing the current one.
- * reset: forgot it: the picture + word let you choose a new one.
+ * recovery: set up or replace the recovery picture, question and words, knowing the current one.
+ * reset: forgot it: the picture + secret words let you choose a new one.
  * remove: no master password any more.
  */
 export type MasterMode = 'set' | 'change' | 'recovery' | 'reset' | 'remove';
@@ -26,18 +30,41 @@ export type MasterMode = 'set' | 'change' | 'recovery' | 'reset' | 'remove';
 const TITLES: Record<MasterMode, string> = {
   set: 'Set a master password',
   change: 'Change the master password',
-  recovery: 'Recovery picture and word',
+  recovery: 'Recovery picture and secret words',
   reset: 'Forgot the master password?',
   remove: 'Remove the master password',
 };
 
-/** One of the recovery pictures (radio buttons styled as tiles). */
-function IconPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+/** A picture choice: `key` goes into the recovery secret, `emoji` is shown. */
+interface Choice {
+  key: string;
+  emoji: string;
+}
+
+const shuffled = <T,>(list: T[]) => {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+/** The six pictures to choose from when resetting (in a new order each time). */
+function resetChoices(saved: string[] | undefined): Choice[] {
+  if (saved?.length) return shuffled(saved.map((e) => ({ key: e, emoji: e })));
+  return Object.entries(LEGACY_RECOVERY_ICONS).map(([key, emoji]) => ({ key, emoji }));
+}
+
+const fromPool = (): Choice[] => pickRecoveryChoices().map((e) => ({ key: e, emoji: e }));
+
+/** Six pictures as tiles (radio buttons). */
+function IconPicker({ choices, value, onChange }: { choices: Choice[]; value: string; onChange: (key: string) => void }) {
   return (
     <div className="recovery-icons" role="radiogroup" aria-label="Recovery picture">
-      {RECOVERY_ICONS.map((i) => (
-        <button key={i.id} type="button" role="radio" aria-checked={value === i.id} aria-label={i.label} title={i.label} className={value === i.id ? 'on' : ''} onClick={() => onChange(i.id)}>
-          {i.emoji}
+      {choices.map((c) => (
+        <button key={c.key} type="button" role="radio" aria-checked={value === c.key} aria-label={c.emoji} className={value === c.key ? 'on' : ''} onClick={() => onChange(c.key)}>
+          {c.emoji}
         </button>
       ))}
     </div>
@@ -50,37 +77,91 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [again, setAgain] = useState('');
+  const [choices, setChoices] = useState<Choice[]>(() => (mode === 'reset' ? resetChoices(s.prefs.recoveryIcons) : fromPool()));
   const [icon, setIcon] = useState('');
-  const [word, setWord] = useState('');
-  const [hint, setHint] = useState(s.prefs.masterHint ?? '');
+  const [own, setOwn] = useState('');
+  const [words, setWords] = useState('');
+  const [question, setQuestion] = useState(s.prefs.masterHint ?? '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const hasRecovery = !!s.prefs.masterRecovery;
   const needsCurrent = mode === 'change' || mode === 'remove' || mode === 'recovery';
   const needsNext = mode === 'set' || mode === 'change' || mode === 'reset';
-  // Picture + word: chosen when setting up (set, recovery), asked back when resetting.
+  // Picture + secret words: chosen when setting up (set, recovery), asked back when resetting.
   const needsRecovery = mode === 'set' || mode === 'recovery' || mode === 'reset';
-  const editsHint = mode === 'set' || mode === 'recovery';
+  const choosing = mode === 'set' || mode === 'recovery';
+  const ownEmoji = oneEmoji(own);
   const nextOk = !needsNext || (next.length >= MIN_MASTER && next === again);
-  const recoveryOk = !needsRecovery || (!!icon && word.trim().length >= (mode === 'reset' ? 1 : MIN_RECOVERY_WORD));
-  const hintLeaks = editsHint && !!hint.trim() && ((!!next && hint.toLowerCase().includes(next.toLowerCase())) || (!!word.trim() && hint.toLowerCase().includes(word.trim().toLowerCase())));
-  const ready = (!needsCurrent || !!current) && nextOk && recoveryOk && !hintLeaks;
+  const wordsOk = countWords(words) >= (choosing ? MIN_SECRET_WORDS : 1);
+  const q = question.trim().toLowerCase();
+  const questionLeaks = choosing && !!q && ((!!next && q.includes(next.toLowerCase())) || (!!normalWords(words) && q.replace(/\s+/g, ' ').includes(normalWords(words))));
+  const recoveryOk = !needsRecovery || (!!icon && wordsOk && (!choosing || (!!q && !questionLeaks)));
+  const ready = (!needsCurrent || !!current) && nextOk && recoveryOk;
 
-  // The picture + word: chosen when setting up (after the password), asked back first when resetting.
+  const pickTile = (key: string) => {
+    setIcon(key);
+    setOwn('');
+  };
+  const typeOwn = (text: string) => {
+    setOwn(text);
+    const e = oneEmoji(text);
+    setIcon(e);
+  };
+  /** The six pictures saved for the reset window: the chosen one and five others. */
+  const savedChoices = () => (ownEmoji && icon === ownEmoji ? pickRecoveryChoices(ownEmoji) : choices.map((c) => c.key));
+
   const recoveryFields = needsRecovery && (mode !== 'reset' || hasRecovery) && (
     <div className="recovery-box">
-      <b className="small">{mode === 'reset' ? 'Your recovery picture and word' : 'If you forget it: a recovery picture and word'}</b>
-      {mode !== 'reset' && (
+      <b className="small">{mode === 'reset' ? 'Your recovery picture and secret words' : 'If you forget it: a recovery picture and secret words'}</b>
+      {choosing && (
         <p className="muted small">
-          Pick a picture and a word only you would think of. Together they can reset the master password, so don’t use something others could guess
-          (like a pet’s name).
+          Like a bank’s security question: write a question only you can answer, and the answer (your secret words). With the picture, they can
+          reset the master password.
         </p>
       )}
-      <IconPicker value={icon} onChange={setIcon} />
-      <Field label="Recovery word" hint={mode === 'reset' ? 'Upper/lower case doesn’t matter.' : `A secret word only you know, like a spare password (e.g. a place or a nickname). At least ${MIN_RECOVERY_WORD} characters; upper/lower case doesn’t matter.`}>
-        <input value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" spellCheck={false} />
+      {mode === 'reset' && s.prefs.masterHint && (
+        <div className="status-line warn">
+          <b>Your secret question:</b> {s.prefs.masterHint}
+        </div>
+      )}
+      {choosing && (
+        <Field
+          label="Secret question"
+          hint={questionLeaks ? 'The question can’t contain the password or the secret words: anyone can read it.' : 'Shown when you forget the master password. Anyone can read it.'}
+        >
+          <input value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={100} placeholder="e.g. Where did we go on our first holiday?" />
+        </Field>
+      )}
+      <Field
+        label="Secret words"
+        hint={
+          choosing
+            ? `The answer to your question, at least ${MIN_SECRET_WORDS} words. Upper/lower case and extra spaces don’t matter.`
+            : 'The answer to your secret question. Upper/lower case and extra spaces don’t matter.'
+        }
+      >
+        <input value={words} onChange={(e) => setWords(e.target.value)} autoComplete="off" spellCheck={false} placeholder={choosing ? 'e.g. penang beach trip' : ''} />
       </Field>
+      <div className="small" style={{ marginTop: 6 }}>
+        <b>{choosing ? 'Pick a picture' : 'Your picture'}</b>
+        {choosing && <span className="muted"> · remember it: you’ll pick it again from six</span>}
+      </div>
+      <div className="recovery-pick">
+        <IconPicker choices={choices} value={icon} onChange={pickTile} />
+        {choosing && (
+          <>
+            <button type="button" className="btn ghost small" title="Show six other pictures" onClick={() => (setChoices(fromPool()), setIcon(ownEmoji))}>
+              <Icon name="sync" /> Others
+            </button>
+            <label className={`recovery-own${ownEmoji && icon === ownEmoji ? ' on' : ''}`}>
+              <span className="muted small">or your own emoji</span>
+              <input value={own} onChange={(e) => typeOwn(e.target.value)} maxLength={16} placeholder="🙂" aria-label="Your own emoji" />
+            </label>
+          </>
+        )}
+      </div>
+      {choosing && own && !ownEmoji && <div className="small warn-text">Type or paste one emoji (Windows: Win + . opens the emoji panel).</div>}
     </div>
   );
 
@@ -92,19 +173,20 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
       const prefs = useStore.getState().prefs;
       if (needsCurrent && !(await isMasterPassword(prefs.masterCheck, current))) throw new Error('That is not the current master password.');
       if (mode === 'remove') {
-        s.savePrefs({ ...prefs, masterCheck: undefined, masterRecovery: undefined, recoveryByMaster: undefined, masterHint: undefined });
+        s.savePrefs({ ...prefs, masterCheck: undefined, masterRecovery: undefined, recoveryByMaster: undefined, masterHint: undefined, recoveryIcons: undefined });
         s.showToast('Master password removed. Locked descriptions still open with the old password.');
         onClose();
         return;
       }
+      const recoverySetup = () => ({ masterHint: question.trim(), recoveryIcons: savedChoices() });
       if (mode === 'recovery') {
-        s.savePrefs({ ...prefs, ...(await makeRecovery(current, icon, word)), masterHint: hint.trim() || undefined });
-        s.showToast('Recovery picture and word saved.');
+        s.savePrefs({ ...prefs, ...(await makeRecovery(current, icon, words)), ...recoverySetup() });
+        s.showToast('Recovery picture and secret words saved.');
         onClose();
         return;
       }
-      // The old master password: typed (change) or recovered with the picture + word (reset).
-      const old = mode === 'change' ? current : mode === 'reset' ? await recoverMaster(prefs.masterRecovery, icon, word) : '';
+      // The old master password: typed (change) or recovered with the picture + secret words (reset).
+      const old = mode === 'change' ? current : mode === 'reset' ? await recoverMaster(prefs.masterRecovery, icon, words) : '';
       if (mode === 'reset' && !(await isMasterPassword(prefs.masterCheck, old))) {
         throw new Error('The recovery is out of date (the master password was changed elsewhere). It can’t reset this one.');
       }
@@ -112,9 +194,10 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
       // Re-lock every description locked with the old one, so they open with the new one.
       const moved = old ? await s.relockNotes(old, next) : 0;
       let recovery: Partial<Recovery> = {};
-      if (mode === 'set' || mode === 'reset') recovery = await makeRecovery(next, icon, word);
+      // Reset keeps the same picture and secret words (and question), now unlocking the new password.
+      if (mode === 'set' || mode === 'reset') recovery = await makeRecovery(next, icon, words);
       else if (prefs.recoveryByMaster) recovery = await moveRecovery(prefs.recoveryByMaster, old, next);
-      s.savePrefs({ ...useStore.getState().prefs, masterCheck, ...recovery, ...(editsHint ? { masterHint: hint.trim() || undefined } : {}) });
+      s.savePrefs({ ...useStore.getState().prefs, masterCheck, ...recovery, ...(mode === 'set' ? recoverySetup() : {}) });
       const what = moved ? `; ${moved} locked ${moved === 1 ? 'description' : 'descriptions'} updated` : '';
       s.showToast(mode === 'set' ? 'Master password set.' : mode === 'reset' ? `New master password set${what}.` : `Master password changed${what}.`);
       onClose();
@@ -154,26 +237,22 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
         )}
         {mode === 'remove' && (
           <p className="muted small" style={{ marginTop: 0 }}>
-            Descriptions already locked stay locked and still open with this password. The recovery picture and word are removed too.
+            Descriptions already locked stay locked and still open with this password. The recovery picture, question and secret words are removed
+            too.
           </p>
         )}
         {mode === 'reset' &&
           (hasRecovery ? (
             <p className="muted small" style={{ marginTop: 0 }}>
-              Choose the picture and type the recovery word you set with the master password, then a new master password. Locked descriptions
-              will open with the new one.
+              Answer your secret question and pick the picture you chose with the master password, then set a new master password. Locked
+              descriptions will open with the new one.
             </p>
           ) : (
             <div className="status-line err">
-              No recovery picture and word were set up on this device, so the master password can’t be reset. Locked descriptions can only be opened
-              with it.
+              No recovery picture and secret words were set up on this device, so the master password can’t be reset. Locked descriptions can only
+              be opened with it.
             </div>
           ))}
-        {mode === 'reset' && s.prefs.masterHint && (
-          <div className="status-line warn">
-            <b>Your hint:</b> {s.prefs.masterHint}
-          </div>
-        )}
 
         {needsCurrent && (
           <Field label="Current master password">
@@ -196,17 +275,8 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
 
         {mode !== 'reset' && recoveryFields}
 
-        {editsHint && (
-          <Field
-            label="Password hint (optional)"
-            hint={hintLeaks ? 'The hint can’t contain the password or the recovery word: anyone can read it.' : 'Shown when the master password is asked for. Anyone can read it.'}
-          >
-            <input value={hint} onChange={(e) => setHint(e.target.value)} maxLength={80} placeholder="e.g. the name of my first bike" />
-          </Field>
-        )}
-
         {needsNext && mode !== 'reset' && (
-          <div className="status-line warn">Without the password or the recovery picture and word, locked descriptions can’t be opened by anyone.</div>
+          <div className="status-line warn">Without the password or the recovery picture and secret words, locked descriptions can’t be opened by anyone.</div>
         )}
         <button type="submit" hidden />
       </form>

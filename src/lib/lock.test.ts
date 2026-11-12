@@ -52,3 +52,43 @@ describe('master password recovery', () => {
     expect(await recoverMaster(moved.masterRecovery, 'anchor', 'harbour')).toBe('new-master');
   });
 });
+
+describe('recovery pictures and secret words', () => {
+  it('works with the emoji itself, any emoji of the user, and ignores case and extra spaces in the secret words', async () => {
+    const { makeRecovery, recoverMaster } = await import('./lock');
+    const r = await makeRecovery('pw-123456', '🦄', 'Penang  Beach trip');
+    expect(await recoverMaster(r.masterRecovery, '🦄', ' penang beach   TRIP ')).toBe('pw-123456');
+    await expect(recoverMaster(r.masterRecovery, '🐱', 'penang beach trip')).rejects.toThrow(/don’t match/);
+    // With or without the emoji presentation mark, it's the same picture.
+    const s2 = await makeRecovery('pw-123456', '☀️', 'two words');
+    expect(await recoverMaster(s2.masterRecovery, '☀', 'two words')).toBe('pw-123456');
+  });
+
+  it('still opens recoveries from the first version (picture by id)', async () => {
+    const { makeRecovery, recoverMaster } = await import('./lock');
+    const r = await makeRecovery('pw-123456', 'rocket', 'Falcon');
+    expect(await recoverMaster(r.masterRecovery, 'rocket', 'falcon')).toBe('pw-123456');
+  });
+
+  it('offers six different pictures, including the chosen one', async () => {
+    const { pickRecoveryChoices } = await import('./lock');
+    const six = pickRecoveryChoices();
+    expect(six).toHaveLength(6);
+    expect(new Set(six).size).toBe(6);
+    const mine = pickRecoveryChoices('🦄');
+    expect(mine).toHaveLength(6);
+    expect(mine).toContain('🦄');
+    expect(pickRecoveryChoices('🐱').filter((e) => e === '🐱')).toHaveLength(1);
+  });
+
+  it('accepts exactly one emoji as the own picture', async () => {
+    const { oneEmoji, countWords } = await import('./lock');
+    expect(oneEmoji(' 🦄 ')).toBe('🦄');
+    expect(oneEmoji('👍🏽')).toBe('👍🏽');
+    expect(oneEmoji('👨‍👩‍👧')).toBe('👨‍👩‍👧');
+    expect(oneEmoji('🦄🐱')).toBe('');
+    expect(oneEmoji('a')).toBe('');
+    expect(countWords('  penang   beach ')).toBe(2);
+    expect(countWords('')).toBe(0);
+  });
+});

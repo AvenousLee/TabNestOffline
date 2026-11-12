@@ -136,8 +136,10 @@ export interface Prefs {
   /** Recovery (lib/lock.ts): the master password encrypted with the chosen picture + word, and the reverse. */
   masterRecovery?: string;
   recoveryByMaster?: string;
-  /** A reminder shown when the master password is asked for (not secret). */
+  /** The secret question, shown when resetting a forgotten master password (not secret). */
   masterHint?: string;
+  /** The six pictures offered when resetting (one is the recovery picture). Unset: the first version's six, by id. */
+  recoveryIcons?: string[];
   /** Opened hidden/locked descriptions close after this many idle minutes (0 = never; unset = 5). */
   noteAutoHideMinutes?: number;
   /** …and as soon as the tab is left (unset = yes). */

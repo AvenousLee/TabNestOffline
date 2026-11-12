@@ -49,9 +49,10 @@ In a card's editor (✏️), **Who can read the description**:
 Opened descriptions close by themselves after a while without use (5 minutes by default, and when you switch tabs); change this in
 **Settings → General**. If that happens while you're editing, your changes are kept and come back when you unlock again.
 
-When you set it, also pick a **recovery picture** and a **recovery word** (and, if you like, a hint). If you forget the master password,
-click **Forgot the master password?** in the unlock window (or *Settings → General*): your hint is shown, then choose the picture, type
-the word and set a new password. ⚠ Without the password or the picture + word, locked descriptions can't be opened.
+When you set it, also write a **secret question** (like a bank's security question), its answer as **secret words** (two words or
+more), and pick a **picture** from six (or type your own emoji). If you forget the master password, click **Forgot the master password?**
+in the unlock window (or *Settings → General*): your question is shown; type the secret words, pick your picture among six and set a new
+password. ⚠ Without the password or the picture + secret words, locked descriptions can't be opened.
 Set the master password before this feature? Use **Set up recovery…** in Settings.
 **Change master password…** re-locks all of them with the new one.
 
@@ -174,4 +175,4 @@ If you build from the source instead, run `npm run build` and reload.
 | Red **Sync problem** | Hover it to read the error. Usually **Update token**, or check the branch under *Change name or branch*. |
 | Chrome warns about developer-mode extensions on start | Expected for unpacked extensions; click **Keep**/close it. |
 | Removing TabNest | Download a backup first (Settings → Backup & restore). `chrome://extensions` → **Remove** deletes its local data; synced spaces stay in your repos. |
-| Forgot the master password | **Forgot the master password?** → pick your recovery picture, type the recovery word, set a new one. Without them, locked descriptions stay locked; other content is unaffected. |
+| Forgot the master password | **Forgot the master password?** → answer your secret question, pick your picture, set a new one. Without them, locked descriptions stay locked; other content is unaffected. |

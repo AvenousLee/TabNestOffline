@@ -68,11 +68,6 @@ export function UnlockDialog({
         <Field label="Password" hint="Your master password (or the card’s own password, for descriptions locked before the master password was set).">
           <input type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
         </Field>
-        {prefs.masterHint && (
-          <p className="muted small">
-            <b>Hint:</b> {prefs.masterHint}
-          </p>
-        )}
         <button type="submit" hidden />
       </form>
       {error && <div className="status-line err">{error}</div>}

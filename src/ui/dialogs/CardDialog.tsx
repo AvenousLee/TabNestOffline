@@ -302,7 +302,6 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
                 <button type="button" className="link-btn" onClick={() => setMasterMode('reset')}>
                   Forgot it?
                 </button>
-                {s.prefs.masterHint && <> · Hint: {s.prefs.masterHint}</>}
               </>
             }
           >
