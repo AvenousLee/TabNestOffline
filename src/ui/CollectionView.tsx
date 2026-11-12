@@ -26,6 +26,8 @@ export function CollectionView({
   const gridRef = useRef<HTMLDivElement>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [colDrop, setColDrop] = useState(false);
+  // A card or tab over the collection but not over its cards (title, header, a folded collection): it goes at the end.
+  const [cardDrop, setCardDrop] = useState(false);
   const [editingName, setEditingName] = useState(false);
 
   const onDragOver = (e: React.DragEvent) => {
@@ -33,6 +35,7 @@ export function CollectionView({
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = e.dataTransfer.effectAllowed === 'copyMove' ? 'move' : 'copy';
+    setCardDrop(false);
     if (gridRef.current) setDropAt(dropIndex(e, gridRef.current, '.card'));
   };
 
@@ -48,19 +51,31 @@ export function CollectionView({
     if (item.kind === 'card') s.moveCard(item, { spaceId: space.id, colId: col.id, index: at });
   };
 
-  // Dropping a collection on this header moves it above this one.
+  // Dropping a collection on this one moves it above it. A card or tab dropped anywhere on it
+  // outside the cards (the title, the header, or while it's folded) goes to the end of it.
   const onHeaderDragOver = (e: React.DragEvent) => {
-    if (!acceptsDrop(e, ['collection'])) return;
-    e.preventDefault();
-    setColDrop(true);
+    if (acceptsDrop(e, ['collection'])) {
+      e.preventDefault();
+      setColDrop(true);
+    } else if (acceptsDrop(e, ['card', 'tab'])) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = e.dataTransfer.effectAllowed === 'copyMove' ? 'move' : 'copy';
+      setCardDrop(true);
+    }
   };
   const onHeaderDrop = (e: React.DragEvent) => {
     const item = readDrop(e);
     setColDrop(false);
+    setCardDrop(false);
     endDrag();
     if (item?.kind === 'collection' && item.spaceId === space.id) {
       e.preventDefault();
       s.moveCollection(space.id, item.colId, index);
+    }
+    if (item?.kind === 'card' || item?.kind === 'tab') {
+      e.preventDefault();
+      if (item.kind === 'tab') s.addCard(space.id, col.id, { title: item.title, url: item.url, favIconUrl: item.favIconUrl }, col.cards.length);
+      else s.moveCard(item, { spaceId: space.id, colId: col.id, index: col.cards.length });
     }
   };
 
@@ -68,9 +83,14 @@ export function CollectionView({
 
   return (
     <section
-      className={`collection${colDrop ? ' col-drop' : ''}`}
+      className={`collection${colDrop ? ' col-drop' : ''}${cardDrop ? ' card-drop' : ''}`}
       onDragOver={onHeaderDragOver}
-      onDragLeave={() => setColDrop(false)}
+      onDragLeave={(e) => {
+        // Only when leaving the whole collection, not when moving between its parts.
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setColDrop(false);
+        setCardDrop(false);
+      }}
       onDrop={onHeaderDrop}
     >
       <div className="col-head">

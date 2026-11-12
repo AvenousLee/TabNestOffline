@@ -164,8 +164,15 @@ export function CardView({
   );
   const drag = {
     draggable: !readOnly,
-    onDragStart: (e: React.DragEvent) => startDrag(e, { kind: 'card', spaceId, colId, cardId: card.id }, card.url || undefined),
-    onDragEnd: endDrag,
+    onDragStart: (e: React.DragEvent) => {
+      startDrag(e, { kind: 'card', spaceId, colId, cardId: card.id }, card.url || undefined);
+      const el = e.currentTarget as HTMLElement;
+      requestAnimationFrame(() => el.classList.add('dragging')); // after the browser took its drag picture
+    },
+    onDragEnd: (e: React.DragEvent) => {
+      (e.currentTarget as HTMLElement).classList.remove('dragging');
+      endDrag();
+    },
   };
   if (isNote) {
     return (
