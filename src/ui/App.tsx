@@ -5,7 +5,7 @@ import { autoHideMinutes, autoHideOnLeave, useAutoHide } from './autoHide';
 import { SpaceView, type CardTarget } from './SpaceView';
 import { OpenTabsPanel } from './OpenTabsPanel';
 import { CardDialog } from './dialogs/CardDialog';
-import { SpaceSettingsDialog } from './dialogs/SpaceSettingsDialog';
+import { SpaceSettingsDialog, type SpaceSettingsTab } from './dialogs/SpaceSettingsDialog';
 import { RemotesDialog } from './dialogs/RemotesDialog';
 import { ShareDialog } from './dialogs/ShareDialog';
 import { ImportDialog } from './dialogs/ImportDialog';
@@ -17,7 +17,7 @@ const SettingsPage = lazy(() => import('./SettingsPage').then((m) => ({ default:
 
 type Dialog =
   | { type: 'card'; target: CardTarget }
-  | { type: 'settings'; spaceId: string }
+  | { type: 'settings'; spaceId: string; tab?: SpaceSettingsTab }
   | { type: 'remotes'; editId?: string; tokenOnly?: boolean }
   | { type: 'share'; ids: string[] }
   | { type: 'import' }
@@ -94,7 +94,7 @@ export function App() {
           <SpaceView
             space={space}
             onEditCard={(target) => setDialog({ type: 'card', target })}
-            onSettings={() => setDialog({ type: 'settings', spaceId: space.id })}
+            onSettings={(tab) => setDialog({ type: 'settings', spaceId: space.id, tab })}
             onShare={() => setDialog({ type: 'share', ids: [space.id] })}
             onUpdateToken={(remoteId) => setDialog({ type: 'remotes', editId: remoteId, tokenOnly: true })}
             onCopyCollections={(colIds) => setDialog({ type: 'copyCols', spaceId: space.id, colIds })}
@@ -108,7 +108,7 @@ export function App() {
       <OpenTabsPanel collapsed={rightCollapsed} onToggle={toggleRight} />
 
       {dialog?.type === 'card' && <CardDialog target={dialog.target} onClose={close} />}
-      {settingsSpace && <SpaceSettingsDialog space={settingsSpace} onClose={close} />}
+      {settingsSpace && dialog?.type === 'settings' && <SpaceSettingsDialog space={settingsSpace} initialTab={dialog.tab} onClose={close} />}
       {dialog?.type === 'remotes' && <RemotesDialog onClose={close} editId={dialog.editId} tokenOnly={dialog.tokenOnly} />}
       {dialog?.type === 'share' && <ShareDialog initial={dialog.ids} onClose={close} />}
       {dialog?.type === 'import' && <ImportDialog onClose={close} />}

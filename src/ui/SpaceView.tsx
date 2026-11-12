@@ -9,6 +9,7 @@ import { CollectionView } from './CollectionView';
 import { CardView } from './CardView';
 import { InlineEdit } from './InlineEdit';
 import { Icon } from './icons';
+import type { SpaceSettingsTab } from './dialogs/SpaceSettingsDialog';
 
 export type CardTarget = { spaceId: string; colId: string; card?: Card };
 
@@ -22,7 +23,7 @@ export function SpaceView({
 }: {
   space: Space;
   onEditCard: (t: CardTarget) => void;
-  onSettings: () => void;
+  onSettings: (tab?: SpaceSettingsTab) => void;
   onShare: () => void;
   onUpdateToken: (remoteId: string) => void;
   /** Open “Copy or move collections”, with these collections ticked. */
@@ -79,11 +80,11 @@ export function SpaceView({
           )}
         </span>
         <span className="head-right">
-          <SyncChip space={space} onSetup={onSettings} />
+          <SyncChip space={space} onSetup={() => onSettings('sync')} />
           <button className="btn ghost" onClick={onShare} title="Export this space as an HTML file anyone can open">
             <Icon name="share" /> Share
           </button>
-          <button className="icon-btn" onClick={onSettings} title="Space settings (sync, sharing)">
+          <button className="icon-btn" onClick={() => onSettings()} title="Space settings (name, sync, sharing)">
             <Icon name="more" />
           </button>
         </span>
@@ -99,7 +100,7 @@ export function SpaceView({
         </button>
       </div>
 
-      <SyncErrorBanner space={space} onUpdateToken={onUpdateToken} onSettings={onSettings} />
+      <SyncErrorBanner space={space} onUpdateToken={onUpdateToken} onSettings={() => onSettings('sync')} />
       <PendingBanner space={space} />
       <MergeNotes space={space} />
 
