@@ -102,7 +102,10 @@ Opened descriptions close again by themselves after a chosen time without mouse 
 optionally, when you leave the tab. If that happens while you're editing one, your changes are kept as an encrypted draft and come
 back the next time you unlock it.
 
-TabNest never stores the master password itself, only a check value made with it. **Nobody can recover a forgotten password.**
+TabNest never stores the master password itself, only a check value made with it. When you set it you also pick a **recovery picture**
+(one of six) and type a **recovery word**, plus an optional hint. If you forget the password, **Forgot the master password?** shows
+your hint; choosing the right picture and typing the word lets you set a new one (locked descriptions are re-locked with it). Without the
+password or the picture + word, nobody can open locked descriptions.
 Changing the master password re-locks every description locked with the old one.
 
 ## Calendar
@@ -237,7 +240,8 @@ repository must be public, and the release must not be a draft or pre-release.
   files or to the repo, and only go into backups if you ask for it. Anyone with access to your Windows account and Chrome profile could
   read them, so use tokens scoped to the one repo.
 - Google sign-in gives TabNest a short-lived token (about an hour), renewed while you're signed in to Google in the browser.
-- Password-protected descriptions are encrypted before they're stored, synced or shared; the master password is never stored.
+- Password-protected descriptions are encrypted before they're stored, synced or shared; the master password is never stored
+  (only encrypted with your recovery picture + word, on this device).
 - Shared HTML files contain space and collection names, links, titles, descriptions (hidden ones too, locked ones only encrypted),
   pictures and site icons. PDFs leave hidden and locked descriptions out.
 - Favicons come from Chrome's own cache (no third-party service).
@@ -255,7 +259,7 @@ repository must be public, and the release must not be a draft or pre-release.
 | `src/share/print.ts` | PDF (print) layout, embedded pictures and site icons |
 | `src/share/viewer.js` / `.css` | The stand-alone viewer embedded in every shared file (no dependencies) |
 | `src/calendar/` | Calendar data: iCal reader, Google Calendar API and sign-in, CalDAV (webmail), agenda, store |
-| `src/lib/lock.ts` | Encryption of password-protected descriptions, master password check |
+| `src/lib/lock.ts` | Encryption of password-protected descriptions, master password check and recovery |
 | `src/lib/backup.ts` | Backup file: what's included, secrets, reading it back |
 | `src/lib/updates.ts` | "Check for updates": latest GitHub release, version comparison |
 | `scripts/release.mjs` | `npm run release`: packs the build as the release zip |

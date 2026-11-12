@@ -24,13 +24,17 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
   const s = useStore();
   const [title, setTitle] = useState(target.card?.title ?? '');
   const [url, setUrl] = useState(target.card?.url ?? '');
-  const lock0 = target.card?.noteLock;
+  const lock0 = useStore(
+    (st) =>
+      st.spaces.find((x) => x.id === target.spaceId)?.collections.find((c) => c.id === target.colId)?.cards.find((k) => k.id === target.card?.id)?.noteLock ??
+      target.card?.noteLock,
+  );
   // A locked description must be unlocked (password asked every time) to be read or changed.
   // Already unlocked on the card: no need to ask again here.
   const [pre] = useState(() => (target.card ? getOpenNote(target.card.id, target.card.noteLock) : undefined));
   const [opened, setOpened] = useState<{ text: string; password: string } | undefined>(pre && { text: pre.text, password: pre.password });
   const [unlocking, setUnlocking] = useState(false);
-  const [settingMaster, setSettingMaster] = useState(false);
+  const [masterMode, setMasterMode] = useState<'set' | 'reset' | null>(null);
   const [note, setNote] = useState(lock0 ? (pre?.text ?? '') : (target.card?.note ?? ''));
   const [privacy, setPrivacy] = useState<Privacy>(lock0 ? 'locked' : target.card?.noteHidden ? 'hidden' : 'shown');
   const [master, setMaster] = useState('');
@@ -284,13 +288,24 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
         {askMaster && !hasMaster && (
           <div className="locked-box">
             <Icon name="lock" /> <span>Set a master password first. It locks all the descriptions you mark as Password.</span>
-            <button type="button" className="btn primary" onClick={() => setSettingMaster(true)}>
+            <button type="button" className="btn primary" onClick={() => setMasterMode('set')}>
               Set master password…
             </button>
           </div>
         )}
         {askMaster && hasMaster && (
-          <Field label="Master password" hint="Needed to lock the description (Settings → General → Master password).">
+          <Field
+            label="Master password"
+            hint={
+              <>
+                Needed to lock the description.{' '}
+                <button type="button" className="link-btn" onClick={() => setMasterMode('reset')}>
+                  Forgot it?
+                </button>
+                {s.prefs.masterHint && <> · Hint: {s.prefs.masterHint}</>}
+              </>
+            }
+          >
             <input type="password" value={master} onChange={(e) => (setMaster(e.target.value), setLockError(''))} autoComplete="current-password" />
           </Field>
         )}
@@ -310,7 +325,7 @@ export function CardDialog({ target, onClose }: { target: CardTarget; onClose: (
           onClose={() => setUnlocking(false)}
         />
       )}
-      {settingMaster && <MasterPasswordDialog mode="set" onClose={() => setSettingMaster(false)} />}
+      {masterMode && <MasterPasswordDialog mode={masterMode} onClose={() => setMasterMode(null)} />}
 
       <label className="check">
         <input type="checkbox" checked={withPicture} onChange={(e) => setWithPicture(e.target.checked)} />

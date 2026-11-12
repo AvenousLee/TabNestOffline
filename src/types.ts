@@ -133,6 +133,11 @@ export interface Prefs {
   startSpaceId?: string;
   /** Master password for locked card descriptions: only a check value made with it (lib/lock.ts), never the password. */
   masterCheck?: string;
+  /** Recovery (lib/lock.ts): the master password encrypted with the chosen picture + word, and the reverse. */
+  masterRecovery?: string;
+  recoveryByMaster?: string;
+  /** A reminder shown when the master password is asked for (not secret). */
+  masterHint?: string;
   /** Opened hidden/locked descriptions close after this many idle minutes (0 = never; unset = 5). */
   noteAutoHideMinutes?: number;
   /** …and as soon as the tab is left (unset = yes). */

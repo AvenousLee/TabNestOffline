@@ -124,11 +124,25 @@ function MasterPasswordSection() {
         <Icon name="lock" />
         <b>{set ? 'A master password is set.' : 'No master password yet.'}</b>
       </p>
+      {set && (
+        <p className={`small ${s.prefs.masterRecovery ? 'muted' : 'warn-text'}`}>
+          {s.prefs.masterRecovery
+            ? 'Recovery picture and word are set up: they can reset the master password if you forget it.'
+            : 'No recovery picture and word yet: if you forget the master password, locked descriptions are lost. Set them up now.'}
+          {s.prefs.masterHint && <> Hint: “{s.prefs.masterHint}”.</>}
+        </p>
+      )}
       <div className="row-actions">
         {set ? (
           <>
             <button className="btn" onClick={() => setMode('change')}>
               Change master password…
+            </button>
+            <button className={`btn${s.prefs.masterRecovery ? '' : ' primary'}`} onClick={() => setMode('recovery')}>
+              {s.prefs.masterRecovery ? 'Change recovery picture & word…' : 'Set up recovery…'}
+            </button>
+            <button className="btn ghost" onClick={() => setMode('reset')}>
+              Forgot it?
             </button>
             <button className="btn ghost danger" onClick={() => setMode('remove')}>
               Remove
@@ -140,7 +154,7 @@ function MasterPasswordSection() {
           </button>
         )}
       </div>
-      <p className="muted small">TabNest never saves the password itself, so nobody can recover it if it’s forgotten.</p>
+      <p className="muted small">TabNest never saves the password itself. Only your recovery picture and word can reset it.</p>
 
       <h3>Hide opened descriptions again</h3>
       <p className="muted small">Like a screen lock: opened hidden or locked descriptions close by themselves, and locked ones need the password again.</p>

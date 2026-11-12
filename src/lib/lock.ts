@@ -49,6 +49,51 @@ const CHECK_TEXT = 'tabnest-master-password';
 /** The value saved in settings to recognise the master password later (not the password itself). */
 export const makeMasterCheck = (password: string) => lockNote(CHECK_TEXT, password);
 
+// Recovery: a picture (1 of 6) and a recovery word, chosen with the master password.
+// Together they unlock a copy of the master password kept in settings, so a forgotten
+// master password can be replaced. They are as strong as the word is hard to guess.
+
+export const RECOVERY_ICONS = [
+  { id: 'cat', emoji: '🐱', label: 'Cat' },
+  { id: 'sunflower', emoji: '🌻', label: 'Sunflower' },
+  { id: 'rocket', emoji: '🚀', label: 'Rocket' },
+  { id: 'balloon', emoji: '🎈', label: 'Balloon' },
+  { id: 'anchor', emoji: '⚓', label: 'Anchor' },
+  { id: 'clover', emoji: '🍀', label: 'Clover' },
+] as const;
+export const MIN_RECOVERY_WORD = 4;
+
+/** Upper/lower case and spaces around the word don't matter. */
+const recoverySecret = (icon: string, word: string) => `tabnest-recovery:${icon}:${word.trim().toLowerCase()}`;
+
+export interface Recovery {
+  /** The master password, encrypted with the picture + word. */
+  masterRecovery: string;
+  /** The picture + word, encrypted with the master password (to keep them when it changes). */
+  recoveryByMaster: string;
+}
+
+async function recoveryFor(secret: string, master: string): Promise<Recovery> {
+  return { masterRecovery: await lockNote(master, secret), recoveryByMaster: await lockNote(secret, master) };
+}
+
+export const makeRecovery = (master: string, icon: string, word: string) => recoveryFor(recoverySecret(icon, word), master);
+
+/** The master password, from the right picture and word. */
+export async function recoverMaster(masterRecovery: string | undefined, icon: string, word: string): Promise<string> {
+  if (!masterRecovery) throw new Error('No recovery picture and word were set up.');
+  try {
+    return await unlockNote(masterRecovery, recoverySecret(icon, word));
+  } catch {
+    throw new Error('That picture and word don’t match.');
+  }
+}
+
+/** Keep the same picture and word when the master password changes. */
+export async function moveRecovery(recoveryByMaster: string, oldMaster: string, newMaster: string): Promise<Recovery> {
+  return recoveryFor(await unlockNote(recoveryByMaster, oldMaster), newMaster);
+}
+
 export async function isMasterPassword(check: string | undefined, password: string): Promise<boolean> {
   if (!check || !password) return false;
   try {

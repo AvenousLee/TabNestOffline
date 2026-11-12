@@ -33,3 +33,22 @@ describe('master password', () => {
     expect(await isMasterPassword(undefined, 'master-pass')).toBe(false);
   });
 });
+
+describe('master password recovery', () => {
+  it('gets the master password back with the right picture and word only', async () => {
+    const { makeRecovery, recoverMaster } = await import('./lock');
+    const r = await makeRecovery('my-master', 'rocket', 'Blue Lagoon');
+    expect(r.masterRecovery).not.toContain('my-master');
+    expect(await recoverMaster(r.masterRecovery, 'rocket', '  blue lagoon ')).toBe('my-master'); // case and spaces don't matter
+    await expect(recoverMaster(r.masterRecovery, 'cat', 'blue lagoon')).rejects.toThrow(/don’t match/);
+    await expect(recoverMaster(r.masterRecovery, 'rocket', 'red lagoon')).rejects.toThrow(/don’t match/);
+    await expect(recoverMaster(undefined, 'rocket', 'blue lagoon')).rejects.toThrow(/No recovery/);
+  });
+
+  it('keeps the same picture and word when the master password changes', async () => {
+    const { makeRecovery, moveRecovery, recoverMaster } = await import('./lock');
+    const r = await makeRecovery('old-master', 'anchor', 'harbour');
+    const moved = await moveRecovery(r.recoveryByMaster, 'old-master', 'new-master');
+    expect(await recoverMaster(moved.masterRecovery, 'anchor', 'harbour')).toBe('new-master');
+  });
+});
