@@ -184,6 +184,13 @@ function GeneralSection() {
           ))}
         </select>
       </Field>
+      <label className="check switch-line">
+        <input type="checkbox" role="switch" checked={!!s.prefs.openCardsInNewTab} onChange={(e) => s.savePrefs({ ...s.prefs, openCardsInNewTab: e.target.checked })} />
+        <b>Open cards in a new tab</b>
+        <span className="muted small">
+          {s.prefs.openCardsInNewTab ? 'Clicking a card opens its link in a new tab; TabNest stays open.' : 'Clicking a card opens its link in this tab (Ctrl+click for a new tab).'}
+        </span>
+      </label>
       <label className="check">
         <input type="checkbox" checked={s.prefs.autoPreview} onChange={(e) => void toggleAuto(e.target.checked)} />
         Automatically add website previews when I save tabs <span className="muted small">(Chrome asks once for access to all websites)</span>

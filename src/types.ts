@@ -137,6 +137,8 @@ export interface Prefs {
   noteAutoHideMinutes?: number;
   /** …and as soon as the tab is left (unset = yes). */
   noteAutoHideOnLeave?: boolean;
+  /** Clicking a card opens its link in a new tab (default: in this tab, replacing TabNest). */
+  openCardsInNewTab?: boolean;
 }
 
 /** Who is sharing. Shown in shared files so readers know whom to ask for a newer copy. */

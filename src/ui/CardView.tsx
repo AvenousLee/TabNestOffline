@@ -7,6 +7,7 @@ import { endDrag, startDrag } from './dnd';
 import { Icon } from './icons';
 import { UnlockDialog } from './UnlockDialog';
 import { onAutoHide } from './autoHide';
+import { useStore } from '../store/store';
 import { closeOpenNote, getOpenNote, setOpenNote } from './openNotes';
 
 export function Favicon({ url, fallback, title }: { url: string; fallback?: string; title: string }) {
@@ -134,6 +135,8 @@ export function CardView({
 }) {
   // A card without a link is a note: clicking it opens the editor instead of a page.
   const isNote = !card.url;
+  // Settings → General: open links in a new tab or in this one. (Ctrl/middle-click still opens a new tab either way.)
+  const newTab = useStore((st) => !!st.prefs.openCardsInNewTab);
   const body = (
     <>
       {card.image && <CardImage src={card.image} />}
@@ -182,7 +185,7 @@ export function CardView({
     );
   }
   return (
-    <a className="card" href={card.url} title={card.url} {...drag}>
+    <a className="card" href={card.url} title={card.url} {...(newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} {...drag}>
       {body}
     </a>
   );
