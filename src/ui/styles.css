@@ -512,7 +512,7 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 /* Master password recovery: picture choice */
 .recovery-box { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
 .recovery-box p { margin: 4px 0 8px; }
-.recovery-icons { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 2px; }
-.recovery-icons button { width: 46px; height: 46px; font-size: 24px; line-height: 1; border-radius: 10px; border: 2px solid var(--line); background: var(--card); cursor: pointer; }
+.recovery-icons { display: grid; grid-template-columns: repeat(auto-fill, 42px); gap: 6px; margin: 6px 0 2px; }
+.recovery-icons button { width: 42px; height: 42px; padding: 0; font-size: 22px; line-height: 1; border-radius: 10px; border: 2px solid var(--line); background: var(--card); cursor: pointer; }
 .recovery-icons button:hover { border-color: var(--muted); }
 .recovery-icons button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card)); }

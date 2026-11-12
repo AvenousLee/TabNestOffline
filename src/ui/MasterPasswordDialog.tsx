@@ -31,7 +31,7 @@ const TITLES: Record<MasterMode, string> = {
   remove: 'Remove the master password',
 };
 
-/** One of the six pictures (radio buttons styled as tiles). */
+/** One of the recovery pictures (radio buttons styled as tiles). */
 function IconPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   return (
     <div className="recovery-icons" role="radiogroup" aria-label="Recovery picture">
@@ -78,7 +78,7 @@ export function MasterPasswordDialog({ mode, onClose }: { mode: MasterMode; onCl
         </p>
       )}
       <IconPicker value={icon} onChange={setIcon} />
-      <Field label="Recovery word" hint={mode === 'reset' ? 'Upper/lower case doesn’t matter.' : `At least ${MIN_RECOVERY_WORD} characters. Upper/lower case doesn’t matter.`}>
+      <Field label="Recovery word" hint={mode === 'reset' ? 'Upper/lower case doesn’t matter.' : `A secret word only you know, like a spare password (e.g. a place or a nickname). At least ${MIN_RECOVERY_WORD} characters; upper/lower case doesn’t matter.`}>
         <input value={word} onChange={(e) => setWord(e.target.value)} autoComplete="off" spellCheck={false} />
       </Field>
     </div>

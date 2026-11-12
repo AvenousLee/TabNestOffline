@@ -49,7 +49,7 @@ const CHECK_TEXT = 'tabnest-master-password';
 /** The value saved in settings to recognise the master password later (not the password itself). */
 export const makeMasterCheck = (password: string) => lockNote(CHECK_TEXT, password);
 
-// Recovery: a picture (1 of 6) and a recovery word, chosen with the master password.
+// Recovery: a picture (1 of 24) and a recovery word, chosen with the master password.
 // Together they unlock a copy of the master password kept in settings, so a forgotten
 // master password can be replaced. They are as strong as the word is hard to guess.
 
@@ -60,6 +60,25 @@ export const RECOVERY_ICONS = [
   { id: 'balloon', emoji: '🎈', label: 'Balloon' },
   { id: 'anchor', emoji: '⚓', label: 'Anchor' },
   { id: 'clover', emoji: '🍀', label: 'Clover' },
+  // Added later: keep the ids above unchanged (they're part of saved recoveries).
+  { id: 'dog', emoji: '🐶', label: 'Dog' },
+  { id: 'fox', emoji: '🦊', label: 'Fox' },
+  { id: 'panda', emoji: '🐼', label: 'Panda' },
+  { id: 'owl', emoji: '🦉', label: 'Owl' },
+  { id: 'fish', emoji: '🐟', label: 'Fish' },
+  { id: 'butterfly', emoji: '🦋', label: 'Butterfly' },
+  { id: 'apple', emoji: '🍎', label: 'Apple' },
+  { id: 'pizza', emoji: '🍕', label: 'Pizza' },
+  { id: 'coffee', emoji: '☕', label: 'Coffee' },
+  { id: 'cake', emoji: '🎂', label: 'Cake' },
+  { id: 'tree', emoji: '🌳', label: 'Tree' },
+  { id: 'mountain', emoji: '⛰️', label: 'Mountain' },
+  { id: 'sun', emoji: '☀️', label: 'Sun' },
+  { id: 'moon', emoji: '🌙', label: 'Moon' },
+  { id: 'star', emoji: '⭐', label: 'Star' },
+  { id: 'umbrella', emoji: '☂️', label: 'Umbrella' },
+  { id: 'guitar', emoji: '🎸', label: 'Guitar' },
+  { id: 'football', emoji: '⚽', label: 'Football' },
 ] as const;
 export const MIN_RECOVERY_WORD = 4;
 
