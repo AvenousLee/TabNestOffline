@@ -18,7 +18,7 @@ You should see TabNest with a **Personal** space and a "Getting started" collect
 
 - **Save tabs:** drag a tab from **Open Tabs** (right) into a collection, or click 💾 to save the whole window as a collection.
 - **Organise:** **New Collection**; drag cards to reorder or into another collection; drop a card on a space in the sidebar to move it there.
-- **Rename:** double-click a space or collection name.
+- **Rename:** double-click a space or collection name, or use **⋯ → Rename** next to a space in the sidebar.
 - **Search:** press `/` and type. Search covers every space.
 - **More room:** click « (top of the sidebar) to shrink the left side to space icons, and » (Open Tabs) to hide the right side.
   Or press `[` and `]`. TabNest remembers your choice.
@@ -28,16 +28,43 @@ You should see TabNest with a **Personal** space and a "Getting started" collect
   Add a picture by **Upload image**, dropping a file, pasting a screenshot (Ctrl+V), pasting an image link, or **Use website preview**.
   Uploaded pictures are shrunk (about 480px wide) and travel with the space, so they sync and show in shared files offline.
   Tick *Automatically add website previews* to get pictures whenever you save tabs (Chrome asks once for access to all websites).
-- **Spaces:** **+ Create Space** in the sidebar. ⋯ → Space settings to change its name and colour.
+- **Spaces:** **+ Create Space** in the sidebar. Drag spaces up or down to reorder them.
+  **⋯** in the space header opens **Space settings** (tabs: *General* for name, colour and default space; *Sync*; *Sharing*).
+  For the colour, pick one of the swatches, or **+** for any colour (colour picker, or a code like `#3a7bd5` / `rgb(58, 123, 213)`).
+- **Default space:** the space every new tab opens on (🏠). Set it with **⋯ → Set as default space** next to a space, in Space settings,
+  or in **Settings → General**. Without a choice, it's the first space in the list.
+- **Copy or move collections** to another space: **Copy / move…** above the collections, the copy icon on a collection, or drag a
+  collection onto a space in the sidebar (hold **Ctrl** to copy).
+- **Narrow window:** the sidebar turns into an icon strip; » slides it open over the page.
 
-## Calendar (view your team calendars)
+## Private descriptions (hide or password)
+
+In a card's editor (✏️), **Who can read the description**:
+
+- **Hidden:** the card shows "Hidden description · show" until you click it. Handy for screen sharing, but **not secret**.
+- **Password:** the description is encrypted with your **master password**. Set the master password the first time
+  (TabNest offers it right there, or **Settings → General → Master password & privacy**).
+  To read it, click **🔒 Locked description · unlock** on the card and type the password, every time.
+
+Opened descriptions close by themselves after a while without use (5 minutes by default, and when you switch tabs); change this in
+**Settings → General**. If that happens while you're editing, your changes are kept and come back when you unlock again.
+
+⚠ **Nobody can recover a forgotten master password**, and locked descriptions can't be opened without it.
+**Change master password…** re-locks all of them with the new one.
+
+## Settings
+
+**Settings** is at the bottom of the sidebar: *General* (profile, default space, previews, side panels, master password, auto-hide),
+*Calendar*, *Git sync*, *Backup & restore* and *About TabNest*.
+
+## Calendar
 
 1. Click **Calendar** at the top of the sidebar (one calendar page; spaces stay for your tabs).
 2. Next to **Other calendars** click **+** and paste an **iCal address**:
    - **Google Calendar:** Settings → your calendar → *Integrate calendar* → **Secret address in iCal format**.
    - **Outlook / Office 365:** Settings → Calendar → *Shared calendars* → *Publish a calendar* → copy the **ICS** link.
    Chrome asks once to allow that website → **Allow**.
-3. Tick/untick a calendar to show/hide it; **⋯** next to it to change colour, rename, refresh, replace the link or remove it.
+3. Tick/untick a calendar to show/hide it. Hover it for **✎** (name, link, colour) and **🗑** (delete); **⋯** has colour and *Refresh now*.
 4. Switch between **Year / Month / Week / Agenda**; click an event for details and links.
 
 Linked calendars are **view only** (create and cancel events in Google/Outlook/webmail; they appear within ~15 minutes, or press ↻).
@@ -66,7 +93,10 @@ One-time setup in Google Cloud (free, no credit card), with any Google account:
 4. *Clients → Create client*: type **Web application**. Under **Authorised redirect URIs** add this copy's address, shown in TabNest
    (Settings → Calendar → *Open the setup guide*). It looks like `https://<extension id>.chromiumapp.org/`.
 5. Create, then copy the **Client ID** into **Settings → Calendar → Google client ID**.
-6. On the Calendar page, click **+** next to **My calendars**, sign in, and tick the calendars to show. Repeat for each account.
+6. On the Calendar page, click **+** next to **My calendars**, sign in, and tick the calendars to show. Repeat for each account
+   (**⋯** next to an account → *Choose calendars…* changes the list later).
+7. **Create** (top of the calendar) adds an event; click an event for **Edit** / **Delete**. Invitations from other people stay view only,
+   and a repeating event changes one date at a time.
 
 A copy of TabNest loaded from another folder (or from a store) has a different redirect address: add that one too.
 Company Google Workspace accounts may need the IT admin to allow the app.
@@ -74,7 +104,7 @@ Company Google Workspace accounts may need the IT admin to allow the app.
 ## 3. Sync a space with Git
 
 1. Create a repository (GitHub, GitLab or your company Forgejo). Private is fine, and so is an empty one.
-2. In TabNest open the space → click **Not synced** (next to Share) → **Git repository**.
+2. In TabNest open the space → click **Not synced** (next to Share; it opens *Space settings → Sync*) → **Git repository**.
 3. Paste the repository address (any form, e.g. `git@git.sophicauto.net:Avenous/TabNest_TestingPage1.git`) → **Connect**.
 4. Chrome asks to allow access to that server → **Allow**.
 5. If it asks for a token, click **Create a token here**, then:
@@ -101,10 +131,10 @@ wins and a green note lists what was decided. (With **Auto-pull**, clash-free me
    **Download HTML file** / **Save as PDF…** (for PDF, Chrome's print window opens: choose **Save as PDF** as the printer).
    Uploaded pictures are always included. Tick *Include linked pictures* to also put linked/website pictures inside the file so they show offline.
 2. Send the `.html` file by email/Teams. Anyone can double-click it to open it in a browser, with no extension needed.
-3. In ⋯ → Space settings → *Offline sharing*:
+3. In ⋯ → Space settings → **Sharing**:
    - **Snapshot**: a frozen copy.
    - **Check for updates**: the file looks for a newer version when opened. With the company Forgejo (sign-in required) the file
-     can't check by itself, so it shows **"Ask Avenous for the latest version"** with a ready-made email.
+     can't check by itself, so it shows **"Ask <owner> for the latest version"** with a ready-made email.
 
 **Colleagues with TabNest** can follow your space live: give them **Read** access to the repo (repo → Settings → Collaborators).
 They then import your `.html` file, or create a space → **Git repository** → **Follow (pull only)** → same file path.
@@ -112,7 +142,15 @@ They then import your `.html` file, or create a space → **Git repository** →
 **Owner:** the first time you share a space, your name and contact from **Shared by** become its **owner**. The owner stays with the space
 when others import or re-share it (they show up as "Shared by"), so anyone holding a copy (HTML or PDF) can reach the original owner.
 
-## 5. Updating to a newer build
+## 5. Move TabNest to another device (backup & restore)
+
+1. On this device: **Settings → Backup & restore** → **Download backup**. Tick *Include secrets* only if you want Git tokens,
+   webmail passwords and iCal links in the file too (keep that file private).
+2. On the other device: install TabNest (step 1) → **Settings → Backup & restore** → **Restore from backup…** → choose the file.
+   This replaces whatever is in TabNest there.
+3. Sign in to your Google accounts again (Calendar → **Sign in again** next to each account). Locked descriptions open with the same password.
+
+## 6. Updating to a newer build
 
 1. Replace the extension folder's contents with the new build (or run `npm run build` if you load `dist`).
 2. Go to `chrome://extensions` → click ↻ (reload) on TabNest. Your spaces are kept.
@@ -126,4 +164,5 @@ when others import or re-share it (they show up as "Shared by"), so anyone holdi
 | "Could not reach the server" | Check VPN / company network. (The localhost preview can't reach the company Forgejo; the installed extension can.) |
 | Red **Sync problem** | Hover it to read the error. Usually **Update token**, or check the branch under *Change name or branch*. |
 | Chrome warns about developer-mode extensions on start | Expected for unpacked extensions; click **Keep**/close it. |
-| Removing TabNest | `chrome://extensions` → **Remove**. This deletes its local data; synced spaces stay in your repos. |
+| Removing TabNest | Download a backup first (Settings → Backup & restore). `chrome://extensions` → **Remove** deletes its local data; synced spaces stay in your repos. |
+| Forgot the master password | It can't be recovered. Locked descriptions stay locked; other content is unaffected. |
