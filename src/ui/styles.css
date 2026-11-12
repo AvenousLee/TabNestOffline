@@ -490,10 +490,13 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-
 .danger-zone > div { flex: 1; min-width: 200px; }
 .danger-zone p { margin: 2px 0 0; }
 .tab-panel { min-height: 330px; }
-/* Space colour: any colour via picker or code */
-.custom-swatch { position: relative; display: inline-flex; align-items: center; justify-content: center; color: #fff; overflow: hidden; box-sizing: border-box; }
-.custom-swatch input[type='color'] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; padding: 0; border: 0; cursor: pointer; }
-.custom-swatch svg { filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.6)); pointer-events: none; }
-.color-code { display: flex; align-items: center; gap: 8px; margin-top: 8px; max-width: 220px; }
-.color-preview { width: 22px; height: 22px; border-radius: 6px; flex: none; border: 1px solid var(--line); }
-.color-code input.invalid { border-color: var(--err); }
+/* Colour chooser: palette + "Add a colour" panel (picker and code) */
+.color-chooser { position: relative; }
+.custom-swatch { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); background: transparent; border: 2px dashed var(--line); box-sizing: border-box; }
+.custom-swatch.on { color: #fff; border-style: solid; border-color: var(--text); }
+.custom-swatch.on svg { filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.6)); }
+.color-pop { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; width: 260px; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgb(0 0 0 / 0.35); }
+.color-pop-row { display: flex; gap: 8px; align-items: center; }
+.color-native { width: 40px; height: 34px; padding: 2px; flex: none; cursor: pointer; }
+.color-pop input.invalid { border-color: var(--err); }
+.color-pop .btn { align-self: flex-end; }
