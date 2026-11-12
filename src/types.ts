@@ -136,7 +136,7 @@ export interface Prefs {
   /** Recovery (lib/lock.ts): the master password encrypted with the chosen picture + word, and the reverse. */
   masterRecovery?: string;
   recoveryByMaster?: string;
-  /** The secret question, shown when resetting a forgotten master password (not secret). */
+  /** A hint from an earlier version, shown when resetting (no longer asked for). */
   masterHint?: string;
   /** The six pictures offered when resetting (one is the recovery picture). Unset: the first version's six, by id. */
   recoveryIcons?: string[];

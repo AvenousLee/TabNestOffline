@@ -129,7 +129,7 @@ function MasterPasswordSection() {
           {s.prefs.masterRecovery
             ? 'Recovery is set up: your picture and secret words can reset the master password if you forget it.'
             : 'No recovery yet: if you forget the master password, locked descriptions are lost. Set it up now.'}
-          {s.prefs.masterRecovery && s.prefs.masterHint && <> Secret question: “{s.prefs.masterHint}”</>}
+          
         </p>
       )}
       <div className="row-actions">
