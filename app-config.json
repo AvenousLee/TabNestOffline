@@ -1,0 +1,4 @@
+{
+  "_help": "Read by every TabNest copy from GitHub (main branch), so changes here need no rebuild. They show up within a few minutes. feedbackUrl: the Google Form (or any https page) opened by Settings -> About -> Send feedback. You can use {version} and {browser} in it (e.g. in a Google Forms pre-filled link) and TabNest fills them in. Leave it empty to hide the button.",
+  "feedbackUrl": ""
+}

@@ -9,6 +9,7 @@ import { backupFileName, describeBackup, makeBackup, readBackup } from '../lib/b
 import { downloadText } from '../share/share';
 import { ABOUT, appVersion } from '../about';
 import { compareVersions, latestRelease, type Release } from '../lib/updates';
+import { browserLabel, cachedAppConfig, fillLink, loadAppConfig, type AppConfig } from '../lib/appConfig';
 import { Field } from './Modal';
 import { MasterPasswordDialog, type MasterMode } from './MasterPasswordDialog';
 import { AUTO_HIDE_CHOICES, autoHideMinutes, autoHideOnLeave } from './autoHide';
@@ -449,8 +450,36 @@ function AboutSection() {
           Source code on GitHub
         </a>
       </div>
+      <FeedbackBox />
       <UpdatesBox />
     </Section>
+  );
+}
+
+/** "Send feedback": opens the form set in app-config.json on GitHub (changeable without a rebuild). */
+function FeedbackBox() {
+  const [config, setConfig] = useState<AppConfig>(cachedAppConfig);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let live = true;
+    void loadAppConfig().then((c) => live && (setConfig(c), setLoading(false)));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const url = config.feedbackUrl && fillLink(config.feedbackUrl, { version: appVersion(), browser: browserLabel() });
+  return (
+    <div className="updates">
+      <h3>Feedback and bug reports</h3>
+      <p className="muted small">Found a problem or have an idea? Tell the developer in a short form. Nothing from your spaces is sent.</p>
+      {url ? (
+        <a className="btn" href={url} target="_blank" rel="noreferrer">
+          <Icon name="note" /> Send feedback or report a bug
+        </a>
+      ) : (
+        <p className="muted small">{loading ? 'Looking for the feedback form…' : 'The feedback form isn’t available yet.'}</p>
+      )}
+    </div>
   );
 }
 

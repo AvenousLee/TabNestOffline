@@ -164,6 +164,11 @@ when others import or re-share it (they show up as "Shared by"), so anyone holdi
 TabNest can't replace its own files (Chrome only lets store installs update by themselves), so steps 3 and 4 are yours.
 If you build from the source instead, run `npm run build` and reload.
 
+## 7. Feedback and bug reports
+
+**Settings → About TabNest → Send feedback or report a bug** opens a short form. Describe what happened (and what you expected);
+nothing from your spaces is sent. If the button says the form isn't available yet, tell the developer directly.
+
 ## If something goes wrong
 
 | Problem | Fix |

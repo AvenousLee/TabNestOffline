@@ -51,7 +51,7 @@ Always load the same folder: Chrome ties TabNest's saved data to it.
 | `npm run build` | Type-checks and builds the extension into `dist/`. |
 | `npm test` | Unit tests (sync and merge, sharing, calendars, encryption, backup, …). |
 | `npm run icons` | Regenerates the PNG icons. |
-| `npm run release` | Builds and packs `release/TabNest-v<version>.zip` for a GitHub release (see below). |
+| `npm run release` | Builds `release/TabNest-v<version>.zip`, tags `v<version>` and moves the `release` branch to it (see below). |
 
 ## Using it
 
@@ -225,12 +225,28 @@ store installs would update by themselves.
 
 **Developer:** to publish version *x.y.z*:
 
-1. Set `"version": "x.y.z"` in `public/manifest.json` (and in `package.json`).
-2. `npm run release` → makes `release/TabNest-vx.y.z.zip` (files at the top level, ready to unzip over an install).
-3. Commit and push, then on GitHub: **Releases → Draft a new release**, tag `vx.y.z`, attach the zip, write what changed, **Publish**.
+1. Set `"version": "x.y.z"` in `public/manifest.json` (and in `package.json`), and commit on `main`.
+2. `npm run release`:
+   - makes `release/TabNest-vx.y.z.zip` (files at the top level, ready to unzip over an install);
+   - checks everything is committed and on `main` (pushes `main` if needed);
+   - tags that commit `vx.y.z` and moves the **`release` branch** to it, both pushed (fast-forward only, never forced).
+   So `release` always holds the latest released code, and each `v…` tag shows exactly what that version contained.
+   `npm run release -- --no-git` only makes the zip.
+3. Open the link it prints (GitHub → new release for that tag), attach the zip, write what changed, **Publish**.
 
 The check reads `https://api.github.com/repos/<owner>/<repo>/releases/latest` (the repository in `src/about.ts`), so the
 repository must be public, and the release must not be a draft or pre-release.
+
+## Feedback and bug reports (changeable without a rebuild)
+
+*Settings → About TabNest → Send feedback or report a bug* opens a form (e.g. a Google Form). Its address lives in
+[`app-config.json`](app-config.json) at the top of this repository, which every TabNest copy reads from GitHub (`main` branch)
+when the About tab is opened, keeping the last copy for offline use. To change the form, edit `feedbackUrl` there and push: no
+rebuild or new release needed (GitHub may take a few minutes to serve the new file). Empty = the button says the form isn't
+available yet.
+
+The link can include `{version}` and `{browser}`: TabNest fills them in. With Google Forms, use *⋮ → Get pre-filled link*, type
+`{version}` and `{browser}` as the answers of two short-answer questions, copy the link, and paste it as `feedbackUrl`.
 
 ## Privacy and security
 
@@ -245,6 +261,8 @@ repository must be public, and the release must not be a draft or pre-release.
 - Shared HTML files contain space and collection names, links, titles, descriptions (hidden ones too, locked ones only encrypted),
   pictures and site icons. PDFs leave hidden and locked descriptions out.
 - Favicons come from Chrome's own cache (no third-party service).
+- Opening *About TabNest* reads `app-config.json` from GitHub (no data sent). The feedback form only gets what you type, plus the
+  TabNest version and browser name if the form link asks for them.
 
 ## Code map
 
@@ -262,7 +280,8 @@ repository must be public, and the release must not be a draft or pre-release.
 | `src/lib/lock.ts` | Encryption of password-protected descriptions, master password check and recovery |
 | `src/lib/backup.ts` | Backup file: what's included, secrets, reading it back |
 | `src/lib/updates.ts` | "Check for updates": latest GitHub release, version comparison |
-| `scripts/release.mjs` | `npm run release`: packs the build as the release zip |
+| `scripts/release.mjs` | `npm run release`: release zip, `v…` tag and `release` branch |
+| `src/lib/appConfig.ts` / `app-config.json` | Settings read from GitHub without a rebuild (feedback form link) |
 | `src/lib/spaceFile.ts` | The space file format (what syncs and is shared) |
 | `src/about.ts` | Credits shown in *Settings → About TabNest* |
 | `src/browser/tabs.ts` | All Chrome tab/permission calls. Port this one file to support Edge or Firefox |
